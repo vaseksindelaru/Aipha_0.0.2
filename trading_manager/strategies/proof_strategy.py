@@ -1,0 +1,89 @@
+import pandas as pd
+import duckdb
+import logging
+import sys
+import os
+
+# Añadir el directorio raíz al path para poder importar los building blocks
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from trading_manager.building_blocks.detectors.key_candle_detector import SignalDetector
+from trading_manager.building_blocks.labelers.potential_capture_engine import get_atr_labels
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
+
+def run_proof_strategy():
+    db_path = "data_processor/data/aipha_data.duckdb"
+    table_name = "btc_1h_data"
+    
+    logger.info("--- INICIANDO PROOF STRATEGY ---")
+    
+    # 1. Carga de Datos desde DuckDB
+    if not os.path.exists(db_path):
+        logger.error(f"Base de datos no encontrada en {db_path}")
+        return
+
+    try:
+        conn = duckdb.connect(db_path)
+        df = conn.execute(f"SELECT * FROM {table_name}").df()
+        conn.close()
+        
+        # Asegurar que el índice es el tiempo y está ordenado
+        df['Open_Time'] = pd.to_datetime(df['Open_Time'])
+        df = df.sort_values('Open_Time').set_index('Open_Time')
+        
+        logger.info(f"Datos cargados: {len(df)} velas de {df.index.min()} a {df.index.max()}")
+    except Exception as e:
+        logger.error(f"Error al cargar datos: {e}")
+        return
+
+    # 2. Detección de Señales
+    logger.info("Detectando velas clave...")
+    df = SignalDetector.detect_key_candles(
+        df, 
+        volume_lookback=50, 
+        volume_percentile_threshold=90, # Ajustado para ser más selectivo
+        body_percentile_threshold=25
+    )
+    
+    # 3. Filtrado de Eventos
+    t_events = df[df['is_key_candle']].index
+    logger.info(f"Se detectaron {len(t_events)} eventos de señal.")
+
+    if len(t_events) == 0:
+        logger.warning("No se detectaron señales con los parámetros actuales.")
+        return
+
+    # 4. Etiquetado (Triple Barrier Method)
+    logger.info("Etiquetando eventos con Triple Barrier Method (ATR)...")
+    labels = get_atr_labels(
+        df, 
+        t_events, 
+        atr_period=14, 
+        tp_factor=2.0, 
+        sl_factor=1.0, 
+        time_limit=24 # 24 horas
+    )
+
+    # 5. Resultados
+    logger.info("--- RESULTADOS FINALES ---")
+    counts = labels.value_counts().sort_index()
+    
+    summary = {
+        "Total Señales": len(labels),
+        "Take Profit (1)": counts.get(1, 0),
+        "Stop Loss (-1)": counts.get(-1, 0),
+        "Neutral (0)": counts.get(0, 0)
+    }
+    
+    for key, val in summary.items():
+        print(f"{key}: {val}")
+        
+    if len(labels) > 0:
+        win_rate = (summary["Take Profit (1)"] / len(labels)) * 100
+        print(f"Win Rate (TP vs Total): {win_rate:.2f}%")
+
+if __name__ == "__main__":
+    run_proof_strategy()
