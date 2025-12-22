@@ -29,6 +29,8 @@ class FeatureEngineer:
                 continue
             
             row = df.loc[timestamp]
+            if isinstance(row, pd.DataFrame):
+                row = row.iloc[0]
             
             # Características sugeridas
             features = {

@@ -22,3 +22,7 @@ oracle/models/*.joblib
 
 # Logs
 *.log
+
+# Autonomous Intelligence Memory
+autonomous_intelligence/memory/backups/
+autonomous_intelligence/memory/*.jsonl

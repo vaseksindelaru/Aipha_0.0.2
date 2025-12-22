@@ -11,15 +11,21 @@ from trading_manager.building_blocks.detectors.key_candle_detector import Signal
 from trading_manager.building_blocks.labelers.potential_capture_engine import get_atr_labels
 from oracle.building_blocks.features.feature_engineer import FeatureEngineer
 from oracle.building_blocks.oracles.oracle_engine import OracleEngine
+from autonomous_intelligence.core.config_manager import ConfigManager
+from autonomous_intelligence.core.memory_manager import MemoryManager
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 def run_proof_strategy_v2():
+    # Inicializar managers de Capa 1
+    config = ConfigManager()
+    memory = MemoryManager()
+    
     db_path = "data_processor/data/aipha_data.duckdb"
     table_name = "btc_1h_data"
-    model_path = "oracle/models/proof_oracle.joblib"
+    model_path = config.get("Oracle.model_path", "oracle/models/proof_oracle.joblib")
     
     logger.info("--- INICIANDO PROOF STRATEGY V2 (CON ORÁCULO) ---")
     
@@ -37,8 +43,12 @@ def run_proof_strategy_v2():
     
     oracle = OracleEngine.load(model_path)
 
-    # 2. Detección de Señales (Layer 3)
-    df = SignalDetector.detect_key_candles(df, volume_percentile_threshold=80)
+    # 2. Detección de Señales (Layer 3 - Usando Config)
+    df = SignalDetector.detect_key_candles(
+        df, 
+        volume_percentile_threshold=config.get("Trading.volume_percentile_threshold", 90),
+        body_percentile_threshold=config.get("Trading.body_percentile_threshold", 25)
+    )
     t_events = df[df['is_key_candle']].index
     
     if len(t_events) == 0:
@@ -59,8 +69,14 @@ def run_proof_strategy_v2():
         logger.warning("El Oráculo no validó ninguna señal.")
         return
 
-    # 4. Etiquetado Real para Verificación (Layer 3)
-    labels = get_atr_labels(df, oracle_signals, tp_factor=2.0, sl_factor=1.0, time_limit=24)
+    # 4. Etiquetado Real para Verificación (Layer 3 - Usando Config)
+    labels = get_atr_labels(
+        df, 
+        oracle_signals, 
+        tp_factor=config.get("Trading.tp_factor", 2.0), 
+        sl_factor=config.get("Trading.sl_factor", 1.0), 
+        time_limit=config.get("Trading.time_limit", 24)
+    )
 
     # 5. Resultados
     logger.info("--- RESULTADOS FINALES (ESTRATEGIA FILTRADA) ---")
@@ -79,6 +95,19 @@ def run_proof_strategy_v2():
     if len(labels) > 0:
         win_rate = (summary["Take Profit (1)"] / len(labels)) * 100
         print(f"Win Rate Filtrado: {win_rate:.2f}%")
+        
+        # REGISTRAR MÉTRICA EN CAPA 1
+        memory.record_metric(
+            component="Oracle",
+            metric_name="win_rate",
+            value=win_rate / 100.0,
+            metadata={
+                "model": model_path,
+                "confidence_threshold": config.get("Oracle.confidence_threshold"),
+                "filtered_signals": len(labels),
+                "original_signals": len(t_events)
+            }
+        )
 
 if __name__ == "__main__":
     run_proof_strategy_v2()

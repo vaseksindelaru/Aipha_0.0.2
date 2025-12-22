@@ -6,7 +6,14 @@ Este repositorio contiene la implementación central del sistema Aipha, organiza
 
 El sistema se divide en cuatro pilares fundamentales que operan de forma secuencial y coordinada:
 
-### 1. Data Processor (Capa 2)
+### 1. Autonomous Intelligence (Capa 1)
+**Responsabilidad**: Orquestación e Inteligencia Autónoma.
+- Gestiona la memoria persistente y el estado global.
+- Analiza métricas y propone mejoras automáticas.
+- Evalúa y aplica cambios de configuración.
+- *Documentación*: [autonomous_intelligence/README.md](file:///home/vaclav/Aipha_0.0.2/autonomous_intelligence/README.md)
+
+### 2. Data Processor (Capa 2)
 **Responsabilidad**: Adquisición y Persistencia.
 - Descarga datos históricos de Binance Vision.
 - Procesa y limpia archivos CSV/ZIP.

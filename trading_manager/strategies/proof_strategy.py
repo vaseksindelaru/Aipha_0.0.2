@@ -9,12 +9,18 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 from trading_manager.building_blocks.detectors.key_candle_detector import SignalDetector
 from trading_manager.building_blocks.labelers.potential_capture_engine import get_atr_labels
+from autonomous_intelligence.core.config_manager import ConfigManager
+from autonomous_intelligence.core.memory_manager import MemoryManager
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 def run_proof_strategy():
+    # Inicializar managers de Capa 1
+    config = ConfigManager()
+    memory = MemoryManager()
+    
     db_path = "data_processor/data/aipha_data.duckdb"
     table_name = "btc_1h_data"
     
@@ -39,13 +45,13 @@ def run_proof_strategy():
         logger.error(f"Error al cargar datos: {e}")
         return
 
-    # 2. Detección de Señales
+    # 2. Detección de Señales (Usando Config)
     logger.info("Detectando velas clave...")
     df = SignalDetector.detect_key_candles(
         df, 
         volume_lookback=50, 
-        volume_percentile_threshold=90, # Ajustado para ser más selectivo
-        body_percentile_threshold=25
+        volume_percentile_threshold=config.get("Trading.volume_percentile_threshold", 90),
+        body_percentile_threshold=config.get("Trading.body_percentile_threshold", 25)
     )
     
     # 3. Filtrado de Eventos
@@ -56,15 +62,15 @@ def run_proof_strategy():
         logger.warning("No se detectaron señales con los parámetros actuales.")
         return
 
-    # 4. Etiquetado (Triple Barrier Method)
+    # 4. Etiquetado (Triple Barrier Method - Usando Config)
     logger.info("Etiquetando eventos con Triple Barrier Method (ATR)...")
     labels = get_atr_labels(
         df, 
         t_events, 
-        atr_period=14, 
-        tp_factor=2.0, 
-        sl_factor=1.0, 
-        time_limit=24 # 24 horas
+        atr_period=config.get("Trading.atr_period", 14), 
+        tp_factor=config.get("Trading.tp_factor", 2.0), 
+        sl_factor=config.get("Trading.sl_factor", 1.0), 
+        time_limit=config.get("Trading.time_limit", 24)
     )
 
     # 5. Resultados
@@ -84,6 +90,18 @@ def run_proof_strategy():
     if len(labels) > 0:
         win_rate = (summary["Take Profit (1)"] / len(labels)) * 100
         print(f"Win Rate (TP vs Total): {win_rate:.2f}%")
+        
+        # REGISTRAR MÉTRICA EN CAPA 1
+        memory.record_metric(
+            component="Trading",
+            metric_name="win_rate",
+            value=win_rate / 100.0,
+            metadata={
+                "tp_factor": config.get("Trading.tp_factor"),
+                "sl_factor": config.get("Trading.sl_factor"),
+                "signals": len(labels)
+            }
+        )
 
 if __name__ == "__main__":
     run_proof_strategy()

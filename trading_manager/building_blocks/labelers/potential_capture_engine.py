@@ -45,6 +45,11 @@ def get_atr_labels(
             
         # Obtener datos desde el evento
         idx = prices.index.get_loc(start_time)
+        if isinstance(idx, slice):
+            idx = idx.start
+        elif isinstance(idx, np.ndarray):
+            idx = np.where(idx)[0][0]
+            
         future_prices = prices.iloc[idx : idx + time_limit + 1]
         
         if len(future_prices) < 2:
@@ -53,6 +58,8 @@ def get_atr_labels(
             
         entry_price = future_prices.iloc[0]['Close']
         current_atr = atr.loc[start_time]
+        if isinstance(current_atr, pd.Series):
+            current_atr = current_atr.iloc[0]
         
         if pd.isna(current_atr):
             labels.append(0)
