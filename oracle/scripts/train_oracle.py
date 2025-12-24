@@ -12,7 +12,7 @@ from trading_manager.building_blocks.detectors.key_candle_detector import Signal
 from trading_manager.building_blocks.labelers.potential_capture_engine import get_atr_labels
 from oracle.building_blocks.features.feature_engineer import FeatureEngineer
 from oracle.building_blocks.oracles.oracle_engine import OracleEngine
-from autonomous_intelligence.core.config_manager import ConfigManager
+from core.config_manager import ConfigManager
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)

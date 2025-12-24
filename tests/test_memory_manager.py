@@ -11,10 +11,10 @@ import os
 from pathlib import Path
 from datetime import datetime
 
-# Añadir el directorio raíz al path para importar autonomous_intelligence
+# Añadir el directorio raíz al path para importar core
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from autonomous_intelligence.core.memory_manager import MemoryManager, ActionEntry
+from core.memory_manager import MemoryManager, ActionEntry
 
 @pytest.fixture
 def memory_manager():

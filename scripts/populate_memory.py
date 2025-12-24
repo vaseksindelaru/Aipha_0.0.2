@@ -9,7 +9,7 @@ from pathlib import Path
 # Añadir el directorio raíz al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from autonomous_intelligence.core.memory_manager import MemoryManager
+from core.memory_manager import MemoryManager
 
 def populate_historical_data():
     memory = MemoryManager()

@@ -62,7 +62,7 @@ graph TD
 - **Resultado**: Una reducción del número de operaciones, pero con una mayor calidad esperada (Win Rate optimizado).
 
 ### 4. Ciclo de Automejora (Capa 1)
-**Script**: `python3 -m autonomous_intelligence.core.orchestrator`
+**Script**: `python3 -m core.orchestrator`
 - **Entrada**: Métricas de rendimiento de todas las capas anteriores almacenadas en el `MemoryManager`.
 - **Proceso**:
     1. **Recolección**: Lee el Win Rate y otros KPIs.
@@ -80,10 +80,10 @@ Para ver este flujo en acción, se recomienda seguir este orden:
 1.  **Ver el Reporte de Prueba**: Abre `full_system_test_report.md` para ver los números reales de la última ejecución.
 2.  **Ejecutar el Dashboard**: 
     ```bash
-    python3 -m autonomous_intelligence.core.dashboard
+    python3 -m core.dashboard
     ```
     Esto te dará una visión rápida del estado actual del sistema y las últimas acciones tomadas.
-3.  **Explorar la Configuración**: Revisa `autonomous_intelligence/memory/aipha_config.json` para ver qué parámetros están controlando el comportamiento de las estrategias.
+3.  **Explorar la Configuración**: Revisa `memory/aipha_config.json` para ver qué parámetros están controlando el comportamiento de las estrategias.
 
 ---
 *Aipha v0.0.2 - Hacia la autonomía total.*

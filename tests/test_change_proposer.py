@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 # Añadir el directorio raíz al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from autonomous_intelligence.core.memory_manager import MemoryManager
-from autonomous_intelligence.core.change_proposer import ChangeProposer
+from core.memory_manager import MemoryManager
+from core.change_proposer import ChangeProposer
 
 @pytest.fixture
 def setup():

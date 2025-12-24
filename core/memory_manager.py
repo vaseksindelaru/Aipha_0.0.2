@@ -32,7 +32,7 @@ class ActionEntry:
 
 class MemoryManager:
     """Gestiona la memoria persistente del sistema."""
-    def __init__(self, storage_root: Path = Path("autonomous_intelligence/memory")):
+    def __init__(self, storage_root: Path = Path("memory")):
         self.storage_root = Path(storage_root)
         self.storage_root.mkdir(parents=True, exist_ok=True)
         

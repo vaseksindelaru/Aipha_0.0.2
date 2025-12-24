@@ -3,7 +3,7 @@ import json
 import tempfile
 from pathlib import Path
 from datetime import datetime, timezone
-from aipha.core.context_sentinel import ContextSentinel, create_sentinel
+from core.context_sentinel import ContextSentinel, create_sentinel
 
 class TestContextSentinel:
     @pytest.fixture

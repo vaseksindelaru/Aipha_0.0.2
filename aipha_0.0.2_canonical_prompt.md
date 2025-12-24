@@ -21,13 +21,13 @@ Antes de entregar este prompt a un LLM:
 ### 1.1 Componentes Críticos (Capa 1 - Autonomous Intelligence)
 | Componente | Archivo (Ruta Absoluta) | Estado | Función |
 |---|---|---|---|
-| **MemoryManager** | `.../autonomous_intelligence/core/memory_manager.py` | ✅ OK | Persistencia de métricas, acciones y estado. |
-| **ConfigManager** | `.../autonomous_intelligence/core/config_manager.py` | ✅ OK | Gestión de config con Backup y Rollback. |
-| **ChangeProposer** | `.../autonomous_intelligence/core/change_proposer.py` | ✅ OK | Generación de propuestas basadas en datos. |
-| **ChangeEvaluator** | `.../autonomous_intelligence/core/change_evaluator.py` | ✅ OK | Scoring de propuestas (Umbral: 0.70). |
-| **CentralOrchestrator** | `.../autonomous_intelligence/core/orchestrator.py` | ✅ OK | Orquestación del ciclo de automejora. |
-| **AlertsSystem** | `.../autonomous_intelligence/core/alerts.py` | ✅ OK | Notificaciones de eventos críticos. |
-| **Dashboard** | `.../autonomous_intelligence/core/dashboard.py` | ✅ OK | Visualización CLI en tiempo real. |
+| **MemoryManager** | `.../core/memory_manager.py` | ✅ OK | Persistencia de métricas, acciones y estado. |
+| **ConfigManager** | `.../core/config_manager.py` | ✅ OK | Gestión de config con Backup y Rollback. |
+| **ChangeProposer** | `.../core/change_proposer.py` | ✅ OK | Generación de propuestas basadas en datos. |
+| **ChangeEvaluator** | `.../core/change_evaluator.py` | ✅ OK | Scoring de propuestas (Umbral: 0.70). |
+| **CentralOrchestrator** | `.../core/orchestrator.py` | ✅ OK | Orquestación del ciclo de automejora. |
+| **AlertsSystem** | `.../core/alerts.py` | ✅ OK | Notificaciones de eventos críticos. |
+| **Dashboard** | `.../core/dashboard.py` | ✅ OK | Visualización CLI en tiempo real. |
 
 ### 1.2 Estado de las Capas (Pipeline)
 - **Capa 2 (Data Processor)**: ✅ Operativa (Binance Vision -> DuckDB).

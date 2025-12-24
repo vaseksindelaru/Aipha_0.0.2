@@ -11,11 +11,11 @@ import json
 # Añadir el directorio raíz al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from autonomous_intelligence.core.memory_manager import MemoryManager
-from autonomous_intelligence.core.config_manager import ConfigManager
+from core.memory_manager import MemoryManager
+from core.config_manager import ConfigManager
 
 class Dashboard:
-    def __init__(self, storage_root: Path = Path("autonomous_intelligence/memory")):
+    def __init__(self, storage_root: Path = Path("memory")):
         self.memory = MemoryManager(storage_root=storage_root)
         self.config = ConfigManager(config_path=storage_root / "aipha_config.json")
 

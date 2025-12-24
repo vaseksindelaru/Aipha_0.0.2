@@ -12,8 +12,8 @@ La integración se ha realizado mediante un modelo de **Control de Lazo Cerrado*
 
 ## 2. Componentes Implementados
 
-### `ConfigManager` (`autonomous_intelligence/core/config_manager.py`)
-- Gestiona el archivo `autonomous_intelligence/memory/aipha_config.json`.
+### `ConfigManager` (`core/config_manager.py`)
+- Gestiona el archivo `memory/aipha_config.json`.
 - Proporciona una fuente única de verdad para todo el sistema.
 - Permite actualizaciones atómicas de parámetros sin modificar el código fuente.
 

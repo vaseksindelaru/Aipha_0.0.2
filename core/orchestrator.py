@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import List, Dict, Any
 import time
 
-from autonomous_intelligence.core.memory_manager import MemoryManager
-from autonomous_intelligence.core.change_proposer import ChangeProposer
-from autonomous_intelligence.core.change_evaluator import ChangeEvaluator
-from autonomous_intelligence.core.config_manager import ConfigManager
-from autonomous_intelligence.core.alerts import AlertsSystem
+from core.memory_manager import MemoryManager
+from core.change_proposer import ChangeProposer
+from core.change_evaluator import ChangeEvaluator
+from core.config_manager import ConfigManager
+from core.alerts import AlertsSystem
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class CentralOrchestrator:
     Ejecuta el ciclo: Recolectar → Proponer → Evaluar → Decidir → Registrar
     """
     
-    def __init__(self, storage_root: Path = Path("autonomous_intelligence/memory")):
+    def __init__(self, storage_root: Path = Path("memory")):
         self.storage_root = Path(storage_root)
         
         # Inicializar componentes

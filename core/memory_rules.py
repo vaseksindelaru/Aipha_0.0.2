@@ -1,5 +1,5 @@
 """Alias para atomic_update_system.py"""
-from aipha.core.atomic_update_system import (
+from core.atomic_update_system import (
     CriticalMemoryRules,
     ChangeProposal,
     ChangeType,

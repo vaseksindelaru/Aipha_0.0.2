@@ -35,7 +35,7 @@ def main():
         ("Capa 2: Data Processor", "python3 data_processor/acquire_data.py"),
         ("Capa 3: Trading Manager", "python3 trading_manager/strategies/proof_strategy.py"),
         ("Capa 4: Oracle", "python3 oracle/strategies/proof_strategy_v2.py"),
-        ("Capa 1: Autonomous Intelligence", "python3 -m autonomous_intelligence.core.orchestrator")
+        ("Capa 1: Autonomous Intelligence", "python3 -m core.orchestrator")
     ]
     
     for name, cmd in steps:

@@ -11,7 +11,7 @@ El sistema se divide en cuatro pilares fundamentales que operan de forma secuenc
 - Gestiona la memoria persistente y el estado global.
 - Analiza métricas y propone mejoras automáticas.
 - Evalúa y aplica cambios de configuración.
-- *Documentación*: [autonomous_intelligence/README.md](file:///home/vaclav/Aipha_0.0.2/autonomous_intelligence/README.md)
+- *Documentación*: [core/README.md](file:///home/vaclav/Aipha_0.0.2/core/README.md)
 
 ### 2. Data Processor (Capa 2)
 **Responsabilidad**: Adquisición y Persistencia.

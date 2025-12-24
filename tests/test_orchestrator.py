@@ -10,7 +10,7 @@ from datetime import datetime
 # Añadir el directorio raíz al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from autonomous_intelligence.core.orchestrator import CentralOrchestrator
+from core.orchestrator import CentralOrchestrator
 
 @pytest.fixture
 def orchestrator():

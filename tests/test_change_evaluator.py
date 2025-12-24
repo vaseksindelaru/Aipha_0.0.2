@@ -9,9 +9,9 @@ from pathlib import Path
 # Añadir el directorio raíz al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from autonomous_intelligence.core.memory_manager import MemoryManager
-from autonomous_intelligence.core.change_proposer import ChangeProposal
-from autonomous_intelligence.core.change_evaluator import ChangeEvaluator
+from core.memory_manager import MemoryManager
+from core.change_proposer import ChangeProposal
+from core.change_evaluator import ChangeEvaluator
 
 @pytest.fixture
 def setup():

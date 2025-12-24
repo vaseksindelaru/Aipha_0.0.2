@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class ConfigManager:
     """Gestiona la configuración persistente del sistema."""
-    def __init__(self, config_path: Path = Path("autonomous_intelligence/memory/aipha_config.json")):
+    def __init__(self, config_path: Path = Path("memory/aipha_config.json")):
         self.config_path = Path(config_path)
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         self._config = self._load_initial_config()
