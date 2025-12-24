@@ -459,5 +459,120 @@
       "filtered_signals": 85,
       "original_signals": 205
     }
+  },
+  {
+    "timestamp": "2025-12-23T00:08:52.167575Z",
+    "component": "Trading",
+    "metric": "win_rate",
+    "value": 0.1346153846153846,
+    "metadata": {
+      "tp_factor": 2.0,
+      "sl_factor": 1.0,
+      "signals": 156
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:09:13.805265Z",
+    "component": "Oracle",
+    "metric": "win_rate",
+    "value": 0.0967741935483871,
+    "metadata": {
+      "model": "oracle/models/proof_oracle.joblib",
+      "confidence_threshold": 0.7,
+      "filtered_signals": 93,
+      "original_signals": 156
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:11:27.395882Z",
+    "component": "Trading",
+    "metric": "win_rate",
+    "value": 0.09868421052631579,
+    "metadata": {
+      "tp_factor": 2.0,
+      "sl_factor": 1.0,
+      "signals": 304
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:11:46.307007Z",
+    "component": "Oracle",
+    "metric": "win_rate",
+    "value": 0.10857142857142858,
+    "metadata": {
+      "model": "oracle/models/proof_oracle.joblib",
+      "confidence_threshold": 0.7,
+      "filtered_signals": 175,
+      "original_signals": 304
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:16:05.084222Z",
+    "component": "Trading",
+    "metric": "win_rate",
+    "value": 0.037037037037037035,
+    "metadata": {
+      "tp_factor": 2.0,
+      "sl_factor": 1.0,
+      "signals": 243
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:16:25.301549Z",
+    "component": "Oracle",
+    "metric": "win_rate",
+    "value": 0.125,
+    "metadata": {
+      "model": "oracle/models/proof_oracle.joblib",
+      "confidence_threshold": 0.7,
+      "filtered_signals": 72,
+      "original_signals": 243
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:18:04.606893Z",
+    "component": "Trading",
+    "metric": "win_rate",
+    "value": 0.203125,
+    "metadata": {
+      "tp_factor": 1.5,
+      "sl_factor": 1.0,
+      "signals": 320
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:18:22.457578Z",
+    "component": "Oracle",
+    "metric": "win_rate",
+    "value": 0.18181818181818182,
+    "metadata": {
+      "model": "oracle/models/proof_oracle.joblib",
+      "confidence_threshold": 0.7,
+      "filtered_signals": 110,
+      "original_signals": 320
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:23:56.858955Z",
+    "component": "Trading",
+    "metric": "win_rate",
+    "value": 0.17759562841530055,
+    "metadata": {
+      "tp_factor": 1.5,
+      "sl_factor": 1.0,
+      "signals": 366
+    }
+  },
+  {
+    "timestamp": "2025-12-23T00:24:16.440415Z",
+    "component": "Oracle",
+    "metric": "win_rate",
+    "value": 0.5118110236220472,
+    "metadata": {
+      "model": "oracle/models/oracle_reversal_v1.joblib",
+      "confidence_threshold": 0.7,
+      "filtered_signals": 127,
+      "original_signals": 366
+    }
   }
 ]

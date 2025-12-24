@@ -51,11 +51,15 @@ def run_proof_strategy():
         df, 
         volume_lookback=50, 
         volume_percentile_threshold=config.get("Trading.volume_percentile_threshold", 90),
-        body_percentile_threshold=config.get("Trading.body_percentile_threshold", 25)
+        body_percentile_threshold=config.get("Trading.body_percentile_threshold", 25),
+        ema_period=config.get("Trading.ema_period", 200),
+        reversal_mode=config.get("Trading.reversal_mode", True)
     )
     
     # 3. Filtrado de Eventos
-    t_events = df[df['is_key_candle']].index
+    key_candles = df[df['is_key_candle']]
+    t_events = key_candles.index
+    sides = key_candles['signal_side']
     logger.info(f"Se detectaron {len(t_events)} eventos de señal.")
 
     if len(t_events) == 0:
@@ -67,6 +71,7 @@ def run_proof_strategy():
     labels = get_atr_labels(
         df, 
         t_events, 
+        sides=sides,
         atr_period=config.get("Trading.atr_period", 14), 
         tp_factor=config.get("Trading.tp_factor", 2.0), 
         sl_factor=config.get("Trading.sl_factor", 1.0), 

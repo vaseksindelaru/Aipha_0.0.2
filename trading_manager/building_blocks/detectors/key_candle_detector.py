@@ -12,16 +12,21 @@ class SignalDetector:
         df: pd.DataFrame,
         volume_lookback: int = 50,
         volume_percentile_threshold: int = 80,
-        body_percentile_threshold: int = 30
+        body_percentile_threshold: int = 30,
+        ema_period: int = 200,
+        reversal_mode: bool = True
     ) -> pd.DataFrame:
         """
-        Detecta 'velas clave' basadas en volumen inusual y cuerpo pequeño.
+        Detecta 'velas clave' basadas en volumen inusual, cuerpo pequeño y tendencia.
         
         Args:
             df: DataFrame con columnas Open, High, Low, Close, Volume.
             volume_lookback: Periodo para calcular el percentil de volumen.
             volume_percentile_threshold: Percentil de volumen para considerar 'alto volumen'.
             body_percentile_threshold: Porcentaje máximo del cuerpo respecto al rango total.
+            ema_period: Periodo para la Media Móvil Exponencial (filtro de tendencia).
+            reversal_mode: Si es True, busca reversiones (señal contra tendencia).
+                           Si es False, busca continuación (señal a favor de tendencia).
             
         Returns:
             DataFrame con la columna 'is_key_candle'.
@@ -38,8 +43,6 @@ class SignalDetector:
                 return df
 
         # 1. Calcular el umbral de volumen (percentil móvil)
-        # Nota: Usamos rolling para el percentil si queremos que sea dinámico, 
-        # pero la guía sugiere un percentil de los últimos N periodos.
         df['volume_threshold'] = df['Volume'].rolling(window=volume_lookback).apply(
             lambda x: np.percentile(x, volume_percentile_threshold)
         )
@@ -55,14 +58,29 @@ class SignalDetector:
             100
         )
 
-        # 3. Detección de la vela clave
+        # 3. Filtro de Tendencia (EMA)
+        df['ema'] = df['Close'].ewm(span=ema_period, adjust=False).mean()
+        df['is_uptrend'] = df['Close'] > df['ema']
+
+        # 4. Detección de la vela clave con alineación de tendencia (o reversión)
+        is_bullish = df['Close'] >= df['Open']
+        
+        if reversal_mode:
+            # Lógica de Reversión: Bullish en Downtrend, Bearish en Uptrend
+            trend_alignment = (is_bullish != df['is_uptrend'])
+        else:
+            # Lógica de Continuación: Bullish en Uptrend, Bearish en Downtrend
+            trend_alignment = (is_bullish == df['is_uptrend'])
+
         df['is_key_candle'] = (
             (df['Volume'] >= df['volume_threshold']) & 
-            (df['body_percentage'] <= body_percentile_threshold)
+            (df['body_percentage'] <= body_percentile_threshold) &
+            trend_alignment
         )
 
-        # Limpiar columnas temporales si se desea, o mantenerlas para debug
-        # df.drop(columns=['volume_threshold', 'body_size', 'candle_range', 'body_percentage'], inplace=True)
+        # 5. Determinar el lado de la señal (1 = Long, -1 = Short)
+        df['signal_side'] = np.where(is_bullish, 1, -1)
 
-        logger.info(f"Detección completada. Velas clave encontradas: {df['is_key_candle'].sum()}")
+        mode_str = "REVERSIÓN" if reversal_mode else "CONTINUACIÓN"
+        logger.info(f"Detección completada ({mode_str}). Velas clave encontradas: {df['is_key_candle'].sum()}")
         return df

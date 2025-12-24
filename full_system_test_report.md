@@ -1,5 +1,5 @@
 # Reporte de Ejecución Completa del Sistema Aipha
-**Fecha de ejecución**: lun 22 dic 2025 11:49:38 CET
+**Fecha de ejecución**: mar 23 dic 2025 01:23:34 CET
 Este reporte documenta el flujo completo desde la adquisición de datos hasta la automejora autónoma.
 ## Capa 2: Data Processor
 **Comando**: `python3 data_processor/acquire_data.py`
@@ -289,84 +289,84 @@ INFO:__main__:Datos guardados en la tabla 'btc_1h_data'.
 ## Capa 3: Trading Manager
 **Comando**: `python3 trading_manager/strategies/proof_strategy.py`
 ```text
-Total Señales: 205
-Take Profit (1): 35
-Stop Loss (-1): 135
-Neutral (0): 35
-Win Rate (TP vs Total): 17.07%
+Total Señales: 366
+Take Profit (1): 65
+Stop Loss (-1): 174
+Neutral (0): 127
+Win Rate (TP vs Total): 17.76%
 
 INFO: MemoryManager inicializado en autonomous_intelligence/memory
 INFO: --- INICIANDO PROOF STRATEGY ---
-INFO: Datos cargados: 10920 velas de 2024-01-01 00:00:00 a 2024-03-31 23:00:00
+INFO: Datos cargados: 24024 velas de 2024-01-01 00:00:00 a 2024-03-31 23:00:00
 INFO: Detectando velas clave...
-INFO: Detección completada. Velas clave encontradas: 205
-INFO: Se detectaron 205 eventos de señal.
+INFO: Detección completada (REVERSIÓN). Velas clave encontradas: 366
+INFO: Se detectaron 366 eventos de señal.
 INFO: Etiquetando eventos con Triple Barrier Method (ATR)...
 INFO: --- RESULTADOS FINALES ---
 ```
 ## Capa 4: Oracle
 **Comando**: `python3 oracle/strategies/proof_strategy_v2.py`
 ```text
-Total Señales Filtradas: 85
-Take Profit (1): 10
-Stop Loss (-1): 60
-Neutral (0): 15
-Win Rate Filtrado: 11.76%
+Total Señales Filtradas: 127
+Take Profit (1): 65
+Stop Loss (-1): 0
+Neutral (0): 62
+Win Rate Filtrado: 51.18%
 
 INFO: MemoryManager inicializado en autonomous_intelligence/memory
 INFO: --- INICIANDO PROOF STRATEGY V2 (CON ORÁCULO) ---
-INFO: Modelo cargado desde oracle/models/proof_oracle.joblib
-INFO: Detección completada. Velas clave encontradas: 205
-INFO: Señales originales: 205
-INFO: Señales filtradas por el Oráculo: 85
+INFO: Modelo cargado desde oracle/models/oracle_reversal_v1.joblib
+INFO: Detección completada (REVERSIÓN). Velas clave encontradas: 366
+INFO: Señales originales: 366
+INFO: Señales filtradas por el Oráculo: 127
 INFO: --- RESULTADOS FINALES (ESTRATEGIA FILTRADA) ---
 ```
 ## Capa 1: Autonomous Intelligence
 **Comando**: `python3 -m autonomous_intelligence.core.orchestrator`
 ```text
-2025-12-22 11:50:16,295 [INFO] autonomous_intelligence.core.memory_manager: MemoryManager inicializado en autonomous_intelligence/memory
-2025-12-22 11:50:16,295 [INFO] autonomous_intelligence.core.change_proposer: ChangeProposer inicializado
-2025-12-22 11:50:16,295 [INFO] autonomous_intelligence.core.change_evaluator: ChangeEvaluator inicializado
-2025-12-22 11:50:16,295 [INFO] autonomous_intelligence.core.alerts: AlertsSystem inicializado
-2025-12-22 11:50:16,295 [INFO] __main__: 🤖 CentralOrchestrator inicializado
-2025-12-22 11:50:16,295 [INFO] __main__: ════════════════════════════════════════════════════════════
-2025-12-22 11:50:16,295 [INFO] __main__: 🔄 INICIANDO CICLO DE AUTOMEJORA
-2025-12-22 11:50:16,295 [INFO] __main__: ════════════════════════════════════════════════════════════
-2025-12-22 11:50:16,295 [INFO] __main__: 
+2025-12-23 01:24:16,887 [INFO] autonomous_intelligence.core.memory_manager: MemoryManager inicializado en autonomous_intelligence/memory
+2025-12-23 01:24:16,888 [INFO] autonomous_intelligence.core.change_proposer: ChangeProposer inicializado
+2025-12-23 01:24:16,888 [INFO] autonomous_intelligence.core.change_evaluator: ChangeEvaluator inicializado
+2025-12-23 01:24:16,888 [INFO] autonomous_intelligence.core.alerts: AlertsSystem inicializado
+2025-12-23 01:24:16,888 [INFO] __main__: 🤖 CentralOrchestrator inicializado
+2025-12-23 01:24:16,888 [INFO] __main__: ════════════════════════════════════════════════════════════
+2025-12-23 01:24:16,889 [INFO] __main__: 🔄 INICIANDO CICLO DE AUTOMEJORA
+2025-12-23 01:24:16,889 [INFO] __main__: ════════════════════════════════════════════════════════════
+2025-12-23 01:24:16,889 [INFO] __main__: 
 [PASO 1] Recolectando métricas...
-2025-12-22 11:50:16,296 [INFO] __main__: 
+2025-12-23 01:24:16,889 [INFO] __main__: 
 [PASO 2] Generando propuestas de cambio...
-2025-12-22 11:50:16,299 [INFO] autonomous_intelligence.core.change_proposer: Generated 2 proposals
-2025-12-22 11:50:16,299 [INFO] __main__:   → 2 propuestas generadas
-2025-12-22 11:50:16,299 [INFO] __main__: 
+2025-12-23 01:24:16,893 [INFO] autonomous_intelligence.core.change_proposer: Generated 2 proposals
+2025-12-23 01:24:16,893 [INFO] __main__:   → 2 propuestas generadas
+2025-12-23 01:24:16,893 [INFO] __main__: 
 [PASO 3] Evaluando propuestas...
-2025-12-22 11:50:16,300 [INFO] autonomous_intelligence.core.change_evaluator: Evaluated AIPHA-1A5FEB: 0.92 → APPROVED
-2025-12-22 11:50:16,300 [INFO] __main__:   → AIPHA-1A5FEB: 0.92 → ✅
-2025-12-22 11:50:16,300 [INFO] autonomous_intelligence.core.change_evaluator: Evaluated AIPHA-951280: 0.80 → APPROVED
-2025-12-22 11:50:16,300 [INFO] __main__:   → AIPHA-951280: 0.80 → ✅
-2025-12-22 11:50:16,300 [INFO] __main__: 
+2025-12-23 01:24:16,893 [INFO] autonomous_intelligence.core.change_evaluator: Evaluated AIPHA-8BEFC6: 0.80 → APPROVED
+2025-12-23 01:24:16,893 [INFO] __main__:   → AIPHA-8BEFC6: 0.80 → ✅
+2025-12-23 01:24:16,894 [INFO] autonomous_intelligence.core.change_evaluator: Evaluated AIPHA-605033: 0.80 → APPROVED
+2025-12-23 01:24:16,894 [INFO] __main__:   → AIPHA-605033: 0.80 → ✅
+2025-12-23 01:24:16,894 [INFO] __main__: 
 [PASO 4] Implementando cambios aprobados...
-2025-12-22 11:50:16,313 [INFO] autonomous_intelligence.core.config_manager: Configuración guardada en autonomous_intelligence/memory/aipha_config.json
-2025-12-22 11:50:16,315 [INFO] autonomous_intelligence.core.memory_manager: [CentralOrchestrator] applied_change_AIPHA-1A5FEB → success
-2025-12-22 11:50:16,315 [INFO] autonomous_intelligence.core.alerts: ℹ️  ALERT: [INFO] Cambio Aplicado: Se aplicó el cambio AIPHA-1A5FEB en Trading.barriers
-2025-12-22 11:50:16,317 [INFO] autonomous_intelligence.core.memory_manager: [AlertsSystem] notification_sent → success
-2025-12-22 11:50:16,317 [INFO] __main__:   ✅ Aplicado: AIPHA-1A5FEB
-2025-12-22 11:50:16,319 [INFO] autonomous_intelligence.core.config_manager: Configuración guardada en autonomous_intelligence/memory/aipha_config.json
-2025-12-22 11:50:16,320 [INFO] autonomous_intelligence.core.memory_manager: [CentralOrchestrator] applied_change_AIPHA-951280 → success
-2025-12-22 11:50:16,321 [INFO] autonomous_intelligence.core.alerts: ℹ️  ALERT: [INFO] Cambio Aplicado: Se aplicó el cambio AIPHA-951280 en Orchestrator.confidence_threshold
-2025-12-22 11:50:16,321 [INFO] autonomous_intelligence.core.memory_manager: [AlertsSystem] notification_sent → success
-2025-12-22 11:50:16,321 [INFO] __main__:   ✅ Aplicado: AIPHA-951280
-2025-12-22 11:50:16,321 [INFO] __main__: 
+2025-12-23 01:24:16,904 [INFO] autonomous_intelligence.core.config_manager: Configuración guardada en autonomous_intelligence/memory/aipha_config.json
+2025-12-23 01:24:16,905 [INFO] autonomous_intelligence.core.memory_manager: [CentralOrchestrator] applied_change_AIPHA-8BEFC6 → success
+2025-12-23 01:24:16,905 [INFO] autonomous_intelligence.core.alerts: ℹ️  ALERT: [INFO] Cambio Aplicado: Se aplicó el cambio AIPHA-8BEFC6 en Trading.tp_factor
+2025-12-23 01:24:16,906 [INFO] autonomous_intelligence.core.memory_manager: [AlertsSystem] notification_sent → success
+2025-12-23 01:24:16,906 [INFO] __main__:   ✅ Aplicado: AIPHA-8BEFC6
+2025-12-23 01:24:16,908 [INFO] autonomous_intelligence.core.config_manager: Configuración guardada en autonomous_intelligence/memory/aipha_config.json
+2025-12-23 01:24:16,908 [INFO] autonomous_intelligence.core.memory_manager: [CentralOrchestrator] applied_change_AIPHA-605033 → success
+2025-12-23 01:24:16,908 [INFO] autonomous_intelligence.core.alerts: ℹ️  ALERT: [INFO] Cambio Aplicado: Se aplicó el cambio AIPHA-605033 en Orchestrator.confidence_threshold
+2025-12-23 01:24:16,909 [INFO] autonomous_intelligence.core.memory_manager: [AlertsSystem] notification_sent → success
+2025-12-23 01:24:16,909 [INFO] __main__:   ✅ Aplicado: AIPHA-605033
+2025-12-23 01:24:16,909 [INFO] __main__: 
 [PASO 5] Registrando ciclo...
-2025-12-22 11:50:16,322 [INFO] autonomous_intelligence.core.memory_manager: Sistema state actualizado: ['last_improvement_cycle', 'last_cycle_proposals', 'last_cycle_approved', 'last_cycle_applied', 'last_cycle_duration_seconds']
-2025-12-22 11:50:16,323 [INFO] autonomous_intelligence.core.memory_manager: [CentralOrchestrator] improvement_cycle_completed → success
-2025-12-22 11:50:16,323 [INFO] __main__: 
+2025-12-23 01:24:16,909 [INFO] autonomous_intelligence.core.memory_manager: Sistema state actualizado: ['last_improvement_cycle', 'last_cycle_proposals', 'last_cycle_approved', 'last_cycle_applied', 'last_cycle_duration_seconds']
+2025-12-23 01:24:16,910 [INFO] autonomous_intelligence.core.memory_manager: [CentralOrchestrator] improvement_cycle_completed → success
+2025-12-23 01:24:16,910 [INFO] __main__: 
 ════════════════════════════════════════════════════════════
-2025-12-22 11:50:16,323 [INFO] __main__: 📊 RESUMEN DEL CICLO
-2025-12-22 11:50:16,323 [INFO] __main__: ════════════════════════════════════════════════════════════
-2025-12-22 11:50:16,323 [INFO] __main__: ⏱️  Duración: 0.0s
-2025-12-22 11:50:16,323 [INFO] __main__: 📝 Propuestas generadas: 2
-2025-12-22 11:50:16,323 [INFO] __main__: ✅ Propuestas aprobadas: 2
-2025-12-22 11:50:16,323 [INFO] __main__: 🔧 Cambios aplicados: 2
-2025-12-22 11:50:16,323 [INFO] __main__: ════════════════════════════════════════════════════════════
+2025-12-23 01:24:16,910 [INFO] __main__: 📊 RESUMEN DEL CICLO
+2025-12-23 01:24:16,910 [INFO] __main__: ════════════════════════════════════════════════════════════
+2025-12-23 01:24:16,910 [INFO] __main__: ⏱️  Duración: 0.0s
+2025-12-23 01:24:16,910 [INFO] __main__: 📝 Propuestas generadas: 2
+2025-12-23 01:24:16,910 [INFO] __main__: ✅ Propuestas aprobadas: 2
+2025-12-23 01:24:16,910 [INFO] __main__: 🔧 Cambios aplicados: 2
+2025-12-23 01:24:16,911 [INFO] __main__: ════════════════════════════════════════════════════════════
 ```

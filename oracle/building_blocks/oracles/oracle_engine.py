@@ -10,7 +10,10 @@ class OracleEngine:
     """Motor del Oráculo basado en Machine Learning."""
 
     def __init__(self, model: Optional[Any] = None):
-        self.model = model if model else RandomForestClassifier(n_estimators=100, random_state=42)
+        if model is not None:
+            self.model = model
+        else:
+            self.model = RandomForestClassifier(n_estimators=100, random_state=42)
 
     def train(self, features: Any, targets: Any):
         """Entrena el modelo con las características y etiquetas proporcionadas."""

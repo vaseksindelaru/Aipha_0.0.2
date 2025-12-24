@@ -1,12 +1,14 @@
 import pandas as pd
 import numpy as np
 import logging
+from typing import Optional, List
 
 logger = logging.getLogger(__name__)
 
 def get_atr_labels(
     prices: pd.DataFrame,
     t_events: pd.Index,
+    sides: Optional[pd.Series] = None,
     atr_period: int = 14,
     tp_factor: float = 2.0,
     sl_factor: float = 1.0,
@@ -14,10 +16,12 @@ def get_atr_labels(
 ) -> pd.Series:
     """
     Versión básica del Triple Barrier Method usando ATR para las barreras.
+    Soporta posiciones Long (1) y Short (-1).
     
     Args:
         prices: DataFrame con columnas High, Low, Close.
         t_events: Índice de timestamps donde ocurrió una señal.
+        sides: Serie con el lado de la señal (1 o -1) para cada timestamp en t_events.
         atr_period: Periodo para el cálculo del ATR.
         tp_factor: Multiplicador del ATR para el Take Profit.
         sl_factor: Multiplicador del ATR para el Stop Loss.
@@ -25,6 +29,7 @@ def get_atr_labels(
         
     Returns:
         Serie de pandas con etiquetas (1, -1, 0) para cada evento.
+        1: Éxito (TP tocado), -1: Fracaso (SL tocado), 0: Límite de tiempo.
     """
     if t_events.empty:
         return pd.Series(dtype='int64')
@@ -42,6 +47,11 @@ def get_atr_labels(
     for start_time in t_events:
         if start_time not in prices.index:
             continue
+            
+        # Determinar el lado (por defecto Long si no se provee)
+        side = sides.loc[start_time] if sides is not None else 1
+        if isinstance(side, pd.Series):
+            side = side.iloc[0]
             
         # Obtener datos desde el evento
         idx = prices.index.get_loc(start_time)
@@ -65,25 +75,35 @@ def get_atr_labels(
             labels.append(0)
             continue
 
-        tp_barrier = entry_price + (current_atr * tp_factor)
-        sl_barrier = entry_price - (current_atr * sl_factor)
+        # Definir barreras según el lado
+        if side == 1: # Long
+            tp_barrier = entry_price + (current_atr * tp_factor)
+            sl_barrier = entry_price - (current_atr * sl_factor)
+        else: # Short
+            tp_barrier = entry_price - (current_atr * tp_factor)
+            sl_barrier = entry_price + (current_atr * sl_factor)
         
         label = 0 # Default: Time limit reached
         
         # Recorrer el futuro para ver qué barrera se toca primero
-        # Empezamos desde la siguiente vela (i=1)
         for i in range(1, len(future_prices)):
             high = future_prices.iloc[i]['High']
             low = future_prices.iloc[i]['Low']
             
-            # Verificar TP
-            if high >= tp_barrier:
-                label = 1
-                break
-            # Verificar SL
-            if low <= sl_barrier:
-                label = -1
-                break
+            if side == 1: # Lógica Long
+                if high >= tp_barrier:
+                    label = 1
+                    break
+                if low <= sl_barrier:
+                    label = -1
+                    break
+            else: # Lógica Short
+                if low <= tp_barrier: # En Short, TP está abajo
+                    label = 1
+                    break
+                if high >= sl_barrier: # En Short, SL está arriba
+                    label = -1
+                    break
                 
         labels.append(label)
 

@@ -47,9 +47,13 @@ def run_proof_strategy_v2():
     df = SignalDetector.detect_key_candles(
         df, 
         volume_percentile_threshold=config.get("Trading.volume_percentile_threshold", 90),
-        body_percentile_threshold=config.get("Trading.body_percentile_threshold", 25)
+        body_percentile_threshold=config.get("Trading.body_percentile_threshold", 25),
+        ema_period=config.get("Trading.ema_period", 200),
+        reversal_mode=config.get("Trading.reversal_mode", True)
     )
-    t_events = df[df['is_key_candle']].index
+    key_candles = df[df['is_key_candle']]
+    t_events = key_candles.index
+    sides = key_candles['signal_side']
     
     if len(t_events) == 0:
         logger.warning("No se detectaron señales.")
@@ -61,6 +65,7 @@ def run_proof_strategy_v2():
     
     # Filtrar solo señales donde el Oráculo predice 1 (Éxito)
     oracle_signals = t_events[predictions == 1]
+    oracle_sides = sides.loc[oracle_signals]
     
     logger.info(f"Señales originales: {len(t_events)}")
     logger.info(f"Señales filtradas por el Oráculo: {len(oracle_signals)}")
@@ -73,6 +78,7 @@ def run_proof_strategy_v2():
     labels = get_atr_labels(
         df, 
         oracle_signals, 
+        sides=oracle_sides,
         tp_factor=config.get("Trading.tp_factor", 2.0), 
         sl_factor=config.get("Trading.sl_factor", 1.0), 
         time_limit=config.get("Trading.time_limit", 24)

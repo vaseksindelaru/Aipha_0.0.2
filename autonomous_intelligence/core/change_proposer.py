@@ -137,17 +137,17 @@ class ChangeProposer:
             )
         
         elif component == "Trading" and metric == "sharpe_ratio":
-            # Sharpe bajó → ajustar barreras ATR
+            # Sharpe bajó → ajustar TP factor
             return ChangeProposal(
                 id=f"AIPHA-{uuid.uuid4().hex[:6].upper()}",
                 timestamp=datetime.utcnow().isoformat() + "Z",
-                title="Ajustar Barreras ATR: Sharpe degradado",
-                component="Trading.barriers",
-                current_value="tp_factor=2.0, sl_factor=1.0",
-                proposed_value="tp_factor=2.5, sl_factor=1.2",
+                title="Ajustar TP Factor: Sharpe degradado",
+                component="Trading.tp_factor",
+                current_value=2.0,
+                proposed_value=1.5,
                 justification=f"Sharpe bajó de {older_avg:.2f} → {recent_avg:.2f}. "
-                            f"Mercado más volátil: aumentar tolerancia de barreras.",
-                impact_metrics={"sharpe_ratio": +0.2},
+                            f"Reducir TP factor para aumentar Win Rate y estabilizar Sharpe.",
+                impact_metrics={"win_rate": +0.1, "sharpe_ratio": +0.1},
                 priority="medium",
                 estimated_complexity="trivial"
             )
