@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import List, Dict, Any
 import time
 
-from core.memory_manager import MemoryManager
+from core.context_sentinel import ContextSentinel
 from core.change_proposer import ChangeProposer
-from core.change_evaluator import ChangeEvaluator
+from core.change_evaluator import ProposalEvaluator
+from core.atomic_update_system import AtomicUpdateSystem
 from core.config_manager import ConfigManager
 from core.alerts import AlertsSystem
 
@@ -27,11 +28,12 @@ class CentralOrchestrator:
         self.storage_root = Path(storage_root)
         
         # Inicializar componentes
-        self.memory = MemoryManager(storage_root=self.storage_root)
+        self.sentinel = ContextSentinel(storage_root=self.storage_root)
         self.config = ConfigManager(config_path=self.storage_root / "aipha_config.json")
-        self.proposer = ChangeProposer(self.memory)
-        self.evaluator = ChangeEvaluator(self.memory)
-        self.alerts = AlertsSystem(memory_manager=self.memory)
+        self.proposer = ChangeProposer(self.sentinel)
+        self.evaluator = ProposalEvaluator(self.sentinel)
+        self.atomic_system = AtomicUpdateSystem(self.sentinel)
+        self.alerts = AlertsSystem(memory_manager=self.sentinel) # AlertsSystem might need update but keeping for now
         
         logger.info("🤖 CentralOrchestrator inicializado")
     
@@ -77,20 +79,20 @@ class CentralOrchestrator:
         
         actions_taken = 0
         for proposal in approved_proposals:
-            success = self._apply_change(proposal)
+            success, message = self.atomic_system.execute(proposal)
             if success:
                 actions_taken += 1
-                self.alerts.info("Cambio Aplicado", f"Se aplicó el cambio {proposal.id} en {proposal.component}")
-                logger.info(f"  ✅ Aplicado: {proposal.id}")
+                self.alerts.info("Cambio Aplicado", f"Se aplicó el cambio {proposal.proposal_id} en {proposal.target_component}")
+                logger.info(f"  ✅ Aplicado: {proposal.proposal_id} - {message}")
             else:
-                self.alerts.critical("Fallo en Aplicación", f"No se pudo aplicar el cambio {proposal.id}")
-                logger.warning(f"  ❌ Fallo: {proposal.id}")
+                self.alerts.critical("Fallo en Aplicación", f"No se pudo aplicar el cambio {proposal.proposal_id}")
+                logger.warning(f"  ❌ Fallo: {proposal.proposal_id} - {message}")
         
         # PASO 5: Registrar ciclo
         logger.info("\n[PASO 5] Registrando ciclo...")
         cycle_duration = (datetime.utcnow() - cycle_start).total_seconds()
         
-        self.memory.update_system_state({
+        self.sentinel.add_memory("system_state", {
             "last_improvement_cycle": cycle_start.isoformat() + "Z",
             "last_cycle_proposals": len(proposals),
             "last_cycle_approved": len(approved_proposals),
@@ -98,17 +100,15 @@ class CentralOrchestrator:
             "last_cycle_duration_seconds": cycle_duration
         })
         
-        self.memory.record_action(
+        self.sentinel.add_action(
             agent="CentralOrchestrator",
-            component="System",
-            action="improvement_cycle_completed",
+            action_type="improvement_cycle_completed",
             details={
                 "proposals_generated": len(proposals),
                 "proposals_approved": len(approved_proposals),
                 "changes_applied": actions_taken,
                 "duration_seconds": cycle_duration
-            },
-            status="success"
+            }
         )
         
         # Resumen final

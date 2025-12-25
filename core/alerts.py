@@ -41,18 +41,32 @@ class AlertsSystem:
             
         # Registrar en memoria si está disponible
         if self.memory:
-            self.memory.record_action(
-                agent="AlertsSystem",
-                component="System",
-                action="notification_sent",
-                details={
-                    "level": level,
-                    "title": title,
-                    "message": message,
-                    "extra": details
-                },
-                status="success"
-            )
+            # Soporte para ContextSentinel (add_action)
+            if hasattr(self.memory, "add_action"):
+                self.memory.add_action(
+                    agent="AlertsSystem",
+                    action_type="NOTIFICATION_SENT",
+                    details={
+                        "level": level,
+                        "title": title,
+                        "message": message,
+                        "extra": details
+                    }
+                )
+            # Soporte para MemoryManager (record_action) - Legacy
+            elif hasattr(self.memory, "record_action"):
+                self.memory.record_action(
+                    agent="AlertsSystem",
+                    component="System",
+                    action="notification_sent",
+                    details={
+                        "level": level,
+                        "title": title,
+                        "message": message,
+                        "extra": details
+                    },
+                    status="success"
+                )
 
     def critical(self, title: str, message: str, details: Optional[Dict[str, Any]] = None):
         self.notify("CRITICAL", title, message, details)
