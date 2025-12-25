@@ -68,7 +68,7 @@ class CentralOrchestrator:
         for proposal in proposals:
             evaluation = self.evaluator.evaluate(proposal)
             evaluations.append(evaluation)
-            logger.info(f"  → {proposal.id}: {evaluation.overall_score:.2f} → {'✅' if evaluation.approved else '❌'}")
+            logger.info(f"  → {proposal.proposal_id}: {evaluation.score:.2f} → {'✅' if evaluation.approved else '❌'}")
         
         # PASO 4: Decidir e implementar
         logger.info("\n[PASO 4] Implementando cambios aprobados...")
@@ -134,7 +134,7 @@ class CentralOrchestrator:
         Simulación de recolección de métricas desde Capas 2-5.
         En producción, esto consultaría las APIs de cada capa.
         """
-        state = self.memory.get_system_state()
+        state = self.sentinel.query_memory("system_state") or {}
         return {
             "oracle_metrics_collected": True,
             "trading_metrics_collected": True,
@@ -168,12 +168,12 @@ class CentralOrchestrator:
     
     def get_status(self) -> Dict[str, Any]:
         """Obtiene estado actual del sistema."""
-        state = self.memory.get_system_state()
-        history = self.memory.get_action_history(limit=10)
+        state = self.sentinel.query_memory("system_state")
+        history = self.sentinel.get_action_history()
         
         return {
             "system_state": state,
-            "recent_actions": history
+            "recent_actions": history[-10:] if history else []
         }
 
 if __name__ == "__main__":

@@ -21,6 +21,8 @@ class ChangeProposal:
     diff_content: str
     test_plan: str
     metrics: Dict[str, Any]
+    priority: str = "normal"
+    estimated_complexity: str = "moderate"
 
 class ChangeProposer:
     """
