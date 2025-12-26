@@ -141,30 +141,6 @@ class CentralOrchestrator:
             "system_state": state
         }
     
-    def _apply_change(self, proposal) -> bool:
-        """
-        Aplica un cambio aprobado modificando la configuración real.
-        """
-        try:
-            # Aplicar cambio en ConfigManager
-            self.config.set(proposal.component, proposal.proposed_value)
-            
-            # Registrar la acción en MemoryManager
-            self.memory.record_action(
-                agent="CentralOrchestrator",
-                component=proposal.component,
-                action=f"applied_change_{proposal.id}",
-                details={
-                    "old_value": str(proposal.current_value),
-                    "new_value": str(proposal.proposed_value),
-                    "justification": proposal.justification
-                },
-                status="success"
-            )
-            return True
-        except Exception as e:
-            logger.error(f"Error aplicando cambio: {e}")
-            return False
     
     def get_status(self) -> Dict[str, Any]:
         """Obtiene estado actual del sistema."""

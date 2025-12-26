@@ -62,6 +62,6 @@ class ChangeProposer:
         
         return proposal
 
-    def propose_changes(self) -> List[ChangeProposal]:
+    def propose_changes(self, lookback_days: int = 7) -> List[ChangeProposal]:
         """Legacy method for compatibility, returns the ATR proposal in Phase 2."""
         return [self.generate_atr_proposal()]
