@@ -1,59 +1,93 @@
-# Aipha - Sistema de Trading Inteligente
+# Aipha v0.0.2 - Sistema de Trading Autónomo
 
-Este repositorio contiene la implementación central del sistema Aipha, organizado en componentes funcionales que colaboran para transformar datos de mercado en decisiones de trading optimizadas.
+Aipha es un sistema de trading algorítmico que **evoluciona solo**. A diferencia de los bots tradicionales, Aipha implementa un bucle cerrado de automejora que ajusta sus propios parámetros sin intervención humana.
 
-## 🏗️ Arquitectura del Sistema
+## 🧬 ¿Qué hace único a Aipha?
 
-El sistema se divide en cuatro pilares fundamentales que operan de forma secuencial y coordinada:
+| Característica | Bots Tradicionales | Aipha v0.0.2 |
+|----------------|-------------------|--------------|
+| Memoria | ❌ Ninguna | ✅ Persistente |
+| Aprendizaje | ❌ Manual | ✅ Automático |
+| Adaptación | ❌ Requiere dev | ✅ Autónoma |
+| LLM | ❌ N/A | ✅ Qwen 2.5 Coder |
 
-### 1. Autonomous Intelligence (Capa 1)
-**Responsabilidad**: Orquestación e Inteligencia Autónoma.
-- Gestiona la memoria persistente y el estado global.
-- Analiza métricas y propone mejoras automáticas.
-- Evalúa y aplica cambios de configuración.
-- *Documentación*: [core/README.md](file:///home/vaclav/Aipha_0.0.2/core/README.md)
+## 🏛️ Arquitectura
 
-### 2. Data Processor (Capa 2)
-**Responsabilidad**: Adquisición y Persistencia.
-- Descarga datos históricos de Binance Vision.
-- Procesa y limpia archivos CSV/ZIP.
-- Almacena los datos en una base de datos analítica local (**DuckDB**).
-- *Documentación*: [data_processor/README.md](file:///home/vaclav/Aipha_0.0.2/data_processor/README.md)
+```
+                    ┌─────────────────────────┐
+                    │    CAPA 1: CORE         │
+                    │  (Autonomous Intel)     │
+                    └───────────┬─────────────┘
+                                │ ← Retroalimentación
+    ┌───────────────┬───────────┴───────────┬───────────────┐
+    │               │                       │               │
+    ▼               ▼                       ▼               ▼
+┌───────┐     ┌───────────┐          ┌──────────┐    ┌───────────┐
+│ Data  │ → → │ Trading   │ → → → → →│  Oracle  │ → →│   Post    │
+│Processor│   │ Manager   │          │   (ML)   │    │ Processor │
+└───────┘     └───────────┘          └──────────┘    └───────────┘
+```
 
-### 2. Trading Manager (Capa 3)
-**Responsabilidad**: Lógica de Ejecución y Estrategia.
-- Implementa detectores de señales basados en patrones de velas y volumen.
-- Utiliza el **Triple Barrier Method** con ATR para definir objetivos de salida (TP/SL).
-- Transforma los datos crudos en eventos accionables con etiquetas de rendimiento.
-- *Documentación*: [trading_manager/README.md](file:///home/vaclav/Aipha_0.0.2/trading_manager/README.md)
+**Documentación completa**: [ARCHITECTURE.md](ARCHITECTURE.md)
 
-### 3. Oracle (Capa 4)
-**Responsabilidad**: Inteligencia y Filtrado.
-- Utiliza modelos de **Machine Learning** (Random Forest) para validar señales.
-- Extrae características avanzadas (features) de cada evento detectado.
-- Filtra las señales de baja probabilidad, aumentando significativamente el Win Rate del sistema.
-- *Documentación*: [oracle/README.md](file:///home/vaclav/Aipha_0.0.2/oracle/README.md)
+## 🚀 Inicio Rápido
 
-### 4. Data Postprocessor (Capa 5)
-**Responsabilidad**: Auto-Mejora y Adaptación.
-- Realiza análisis post-mortem de los trades ejecutados.
-- Identifica "ruido" de mercado y ajusta dinámicamente la sensibilidad de las barreras.
-- Cierra el bucle de retroalimentación para que el sistema aprenda de sus errores en tiempo real.
-- *Documentación*: [data_postprocessor/README.md](file:///home/vaclav/Aipha_0.0.2/data_postprocessor/README.md)
+### Ejecutar Simulación
+```bash
+export HF_API_KEY="your_huggingface_key"  # Para LLM
+export PYTHONPATH=$PYTHONPATH:.
+python3 life_cycle.py
+```
+
+### Ejecutar Tests
+```bash
+pytest tests/ -v
+```
+
+## 📂 Estructura del Proyecto
+
+```
+Aipha_0.0.2/
+├── core/                    # 🧠 Inteligencia Autónoma
+│   ├── orchestrator.py      # Orquestador central
+│   ├── context_sentinel.py  # Memoria persistente
+│   ├── change_proposer.py   # Generador de propuestas
+│   ├── llm_proposer.py      # Integración LLM
+│   └── atomic_update_system.py
+├── trading_manager/         # 📈 Estrategias de trading
+├── oracle/                  # 🔮 Machine Learning
+├── data_processor/          # 📊 Adquisición de datos
+├── simulation/              # 🎲 Mercado sintético
+├── tests/                   # 🧪 Suite de pruebas
+├── memory/                  # 💾 Almacenamiento
+└── life_cycle.py            # 🔄 Simulación del ciclo
+```
+
+## 🔧 Componentes Principales
+
+| Componente | Archivo | Función |
+|------------|---------|---------|
+| Orquestador | `core/orchestrator.py` | Dirige ciclo de automejora |
+| Memoria | `core/context_sentinel.py` | Persistencia JSON/JSONL |
+| Proposer | `core/change_proposer.py` | Genera cambios dinámicos |
+| LLM | `core/llm_proposer.py` | Razonamiento avanzado |
+| Atómico | `core/atomic_update_system.py` | Protocolo de 5 pasos |
+
+## 📈 Estado Actual
+
+- ✅ Fase 1-3: Core funcional (Memoria, Propuestas, Ejecución)
+- ✅ Fase 4-5: Simulación multi-régimen
+- ✅ Fase 6: Múltiples regímenes de mercado
+- ✅ Fase 7: Hysteresis y límites de parámetros
+- ✅ Fase 8: Integración LLM (Qwen 2.5)
+
+## 🗺️ Próximos Pasos
+
+- [ ] Fase 9: Multi-Asset
+- [ ] Fase 10: Backtesting antes de aplicar
+- [ ] Fase 11: Ejecución en exchanges reales
+- [ ] Fase 12: Dashboard web
 
 ---
 
-## 🔄 Flujo de Trabajo Integrado
-
-1.  **Adquisición**: El `Data Processor` puebla la base de datos con velas históricas.
-2.  **Detección**: El `Trading Manager` identifica oportunidades (Velas Clave).
-3.  **Validación**: El `Oracle` analiza la oportunidad y decide si es apta para operar.
-4.  **Ejecución**: Se simula el trade con barreras dinámicas de ATR.
-5.  **Aprendizaje**: El `Data Postprocessor` evalúa el resultado y ajusta los multiplicadores para futuras señales.
-
-## 🚀 Próximos Pasos: Capa 1
-Esta estructura consolidada sirve como base para la implementación de la **Capa 1**, que se encargará de la orquestación de alto nivel, gestión de memoria y reglas de evolución del sistema completo.
-
----
-*Aipha - Hacia un sistema de trading autónomo y auto-mejorable.*
-# Aipha_0.0.2
+*Aipha v0.0.2 - Un sistema que no solo opera, sino que evoluciona.*
