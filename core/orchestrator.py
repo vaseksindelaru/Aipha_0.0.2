@@ -24,16 +24,36 @@ class CentralOrchestrator:
     Ejecuta el ciclo: Recolectar → Proponer → Evaluar → Decidir → Registrar
     """
     
-    def __init__(self, storage_root: Path = Path("memory")):
+    def __init__(self, storage_root: Path = Path("memory"), use_llm: bool = False):
         self.storage_root = Path(storage_root)
+        self.use_llm = use_llm
         
         # Inicializar componentes
         self.sentinel = ContextSentinel(storage_root=self.storage_root)
         self.config = ConfigManager(config_path=self.storage_root / "aipha_config.json")
-        self.proposer = ChangeProposer(self.sentinel)
+        
+        # Seleccionar proposer según configuración
+        if use_llm:
+            try:
+                from core.llm_proposer import LLMProposer
+                self.proposer = LLMProposer(self.sentinel)
+                logger.info("🧠 Usando LLMProposer")
+            except Exception as e:
+                logger.warning(f"No se pudo cargar LLMProposer ({e}), usando heurísticas")
+                self.proposer = ChangeProposer(self.sentinel)
+        else:
+            self.proposer = ChangeProposer(self.sentinel)
+        
         self.evaluator = ProposalEvaluator(self.sentinel)
         self.atomic_system = AtomicUpdateSystem(self.sentinel)
-        self.alerts = AlertsSystem(memory_manager=self.sentinel) # AlertsSystem might need update but keeping for now
+        self.alerts = AlertsSystem(memory_manager=self.sentinel)
+        
+        # Inicializar información del sistema
+        self.sentinel.add_memory("system_info", {
+            "version": "0.0.2",
+            "mode": "AUTONOMOUS_LLM" if use_llm else "AUTONOMOUS",
+            "last_boot": datetime.utcnow().isoformat() + "Z"
+        })
         
         logger.info("🤖 CentralOrchestrator inicializado")
     

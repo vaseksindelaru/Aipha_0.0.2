@@ -1,0 +1,11 @@
+{
+  "trading_metrics": {
+    "win_rate": 0.0,
+    "total_trades": 0,
+    "current_drawdown": 0.0
+  },
+  "proposal_history": {
+    "last_type": "loosen",
+    "cycles_since_last": 0
+  }
+}

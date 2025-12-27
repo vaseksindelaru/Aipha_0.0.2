@@ -103,20 +103,38 @@ class AtomicUpdateSystem:
         logger.info(f"Backup creado: {self.backup_path}")
 
     def _step_apply_diff(self, diff_content: str):
-        """Paso 2: Aplicar cambios al archivo."""
-        # Implementación simplificada de aplicación de diff para la Fase 3
-        # Soporta: + linea_nueva y - linea_vieja
+        """Paso 2: Aplicar cambios al archivo (Soporta reemplazo in-situ)."""
         content = self.target_path.read_text()
         lines = content.splitlines()
         
         diff_lines = diff_content.splitlines()
-        for d_line in diff_lines:
+        i = 0
+        while i < len(diff_lines):
+            d_line = diff_lines[i]
+            
             if d_line.startswith("- "):
                 to_remove = d_line[2:].strip()
-                lines = [l for l in lines if to_remove not in l]
+                # Buscar la línea en el archivo original
+                found_idx = -1
+                for idx, l in enumerate(lines):
+                    if to_remove in l:
+                        found_idx = idx
+                        break
+                
+                if found_idx != -1:
+                    # Si la siguiente línea del diff es +, es un reemplazo
+                    if i + 1 < len(diff_lines) and diff_lines[i+1].startswith("+ "):
+                        to_add = diff_lines[i+1][2:]
+                        lines[found_idx] = to_add
+                        i += 1 # Saltar la línea +
+                    else:
+                        # Es solo borrado
+                        lines.pop(found_idx)
             elif d_line.startswith("+ "):
-                to_add = d_line[2:]
-                lines.append(to_add)
+                # Adición pura (append al final por defecto si no es parte de un reemplazo)
+                lines.append(d_line[2:])
+            
+            i += 1
         
         self.target_path.write_text("\n".join(lines) + "\n")
         logger.info("Diff aplicado al archivo objetivo.")

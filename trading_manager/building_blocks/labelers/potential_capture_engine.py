@@ -11,7 +11,7 @@ def get_atr_labels(
     sides: Optional[pd.Series] = None,
     atr_period: int = 14,
     tp_factor: float = 2.0,
-    sl_factor: float = 1.0,
+    sl_factor: float = 1.2,
     time_limit: int = 24
 ) -> pd.Series:
     """
@@ -108,3 +108,7 @@ def get_atr_labels(
         labels.append(label)
 
     return pd.Series(labels, index=t_events)
+    atr_period: int = 10,
+    atr_period: int = 10,
+    atr_period: int = 10,
+    sl_factor: float = 0.8,
