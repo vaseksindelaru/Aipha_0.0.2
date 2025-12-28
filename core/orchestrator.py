@@ -24,9 +24,10 @@ class CentralOrchestrator:
     Ejecuta el ciclo: Recolectar → Proponer → Evaluar → Decidir → Registrar
     """
     
-    def __init__(self, storage_root: Path = Path("memory"), use_llm: bool = False):
+    def __init__(self, storage_root: Path = Path("memory"), use_llm: bool = False, dry_run: bool = False):
         self.storage_root = Path(storage_root)
         self.use_llm = use_llm
+        self.dry_run = dry_run
         
         # Inicializar componentes
         self.sentinel = ContextSentinel(storage_root=self.storage_root)
@@ -67,8 +68,9 @@ class CentralOrchestrator:
         Returns:
             Resumen del ciclo (propuestas, aprobaciones, acciones)
         """
+        dry_run_prefix = "[DRY-RUN] " if self.dry_run else ""
         logger.info("═" * 60)
-        logger.info("🔄 INICIANDO CICLO DE AUTOMEJORA")
+        logger.info(f"{dry_run_prefix}🔄 INICIANDO CICLO DE AUTOMEJORA")
         logger.info("═" * 60)
         
         cycle_start = datetime.utcnow()
@@ -91,54 +93,69 @@ class CentralOrchestrator:
             logger.info(f"  → {proposal.proposal_id}: {evaluation.score:.2f} → {'✅' if evaluation.approved else '❌'}")
         
         # PASO 4: Decidir e implementar
-        logger.info("\n[PASO 4] Implementando cambios aprobados...")
+        logger.info(f"\n[PASO 4] {'Simulando' if self.dry_run else 'Implementando'} cambios aprobados...")
         approved_proposals = [p for p, e in zip(proposals, evaluations) if e.approved]
         
         if not approved_proposals and proposals:
             self.alerts.warning("Ciclo sin cambios", "Se generaron propuestas pero ninguna fue aprobada por el Evaluador.")
         
         actions_taken = 0
-        for proposal in approved_proposals:
-            success, message = self.atomic_system.execute(proposal)
-            if success:
+        if self.dry_run:
+            # En modo dry-run, solo simulamos la aplicación sin persistencia
+            logger.info(f"\n⚠️  [DRY-RUN MODE] - No se persistirán cambios")
+            for proposal in approved_proposals:
+                logger.info(f"  🔍 [SIMULADO] Aplicaría: {proposal.proposal_id} - {proposal.title}")
+                logger.info(f"     Target: {proposal.target_component}")
+                logger.info(f"     Justification: {proposal.impact_justification}")
                 actions_taken += 1
-                self.alerts.info("Cambio Aplicado", f"Se aplicó el cambio {proposal.proposal_id} en {proposal.target_component}")
-                logger.info(f"  ✅ Aplicado: {proposal.proposal_id} - {message}")
-            else:
-                self.alerts.critical("Fallo en Aplicación", f"No se pudo aplicar el cambio {proposal.proposal_id}")
-                logger.warning(f"  ❌ Fallo: {proposal.proposal_id} - {message}")
+        else:
+            # Modo normal: persistir cambios realmente
+            for proposal in approved_proposals:
+                success, message = self.atomic_system.execute(proposal)
+                if success:
+                    actions_taken += 1
+                    self.alerts.info("Cambio Aplicado", f"Se aplicó el cambio {proposal.proposal_id} en {proposal.target_component}")
+                    logger.info(f"  ✅ Aplicado: {proposal.proposal_id} - {message}")
+                else:
+                    self.alerts.critical("Fallo en Aplicación", f"No se pudo aplicar el cambio {proposal.proposal_id}")
+                    logger.warning(f"  ❌ Fallo: {proposal.proposal_id} - {message}")
         
-        # PASO 5: Registrar ciclo
-        logger.info("\n[PASO 5] Registrando ciclo...")
+        # PASO 5: Registrar ciclo (SOLO si no es dry-run)
         cycle_duration = (datetime.utcnow() - cycle_start).total_seconds()
         
-        self.sentinel.add_memory("system_state", {
-            "last_improvement_cycle": cycle_start.isoformat() + "Z",
-            "last_cycle_proposals": len(proposals),
-            "last_cycle_approved": len(approved_proposals),
-            "last_cycle_applied": actions_taken,
-            "last_cycle_duration_seconds": cycle_duration
-        })
-        
-        self.sentinel.add_action(
-            agent="CentralOrchestrator",
-            action_type="improvement_cycle_completed",
-            details={
-                "proposals_generated": len(proposals),
-                "proposals_approved": len(approved_proposals),
-                "changes_applied": actions_taken,
-                "duration_seconds": cycle_duration
-            }
-        )
+        if not self.dry_run:
+            logger.info("\n[PASO 5] Registrando ciclo...")
+            self.sentinel.add_memory("system_state", {
+                "last_improvement_cycle": cycle_start.isoformat() + "Z",
+                "last_cycle_proposals": len(proposals),
+                "last_cycle_approved": len(approved_proposals),
+                "last_cycle_applied": actions_taken,
+                "last_cycle_duration_seconds": cycle_duration
+            })
+            
+            self.sentinel.add_action(
+                agent="CentralOrchestrator",
+                action_type="improvement_cycle_completed",
+                details={
+                    "proposals_generated": len(proposals),
+                    "proposals_approved": len(approved_proposals),
+                    "changes_applied": actions_taken,
+                    "duration_seconds": cycle_duration
+                }
+            )
+        else:
+            logger.info("\n[PASO 5] ⚠️ [DRY-RUN] - No se registra ciclo en memoria")
         
         # Resumen final
         logger.info("\n" + "═" * 60)
-        logger.info("📊 RESUMEN DEL CICLO")
+        logger.info(f"{dry_run_prefix}📊 RESUMEN DEL CICLO")
         logger.info("═" * 60)
         logger.info(f"⏱️  Duración: {cycle_duration:.1f}s")
         logger.info(f"📝 Propuestas generadas: {len(proposals)}")
         logger.info(f"✅ Propuestas aprobadas: {len(approved_proposals)}")
-        logger.info(f"🔧 Cambios aplicados: {actions_taken}")
+        logger.info(f"{'🔍 Cambios simulados' if self.dry_run else '🔧 Cambios aplicados'}: {actions_taken}")
+        if self.dry_run:
+            logger.info("⚠️  Este ciclo fue ejecutado en modo DRY-RUN - no se persistieron cambios")
         logger.info("═" * 60 + "\n")
         
         return {
@@ -146,7 +163,8 @@ class CentralOrchestrator:
             "proposals_generated": len(proposals),
             "proposals_approved": len(approved_proposals),
             "changes_applied": actions_taken,
-            "duration_seconds": cycle_duration
+            "duration_seconds": cycle_duration,
+            "dry_run": self.dry_run
         }
     
     def _collect_metrics(self) -> Dict[str, Any]:
