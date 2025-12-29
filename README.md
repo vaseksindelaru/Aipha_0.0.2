@@ -1,42 +1,63 @@
-# Aipha v0.0.2 - Sistema de Trading Autónomo
+# Aipha v2.0 - Sistema Autónomo de 5 Capas
 
-Aipha es un sistema de trading algorítmico que **evoluciona solo**. A diferencia de los bots tradicionales, Aipha implementa un bucle cerrado de automejora que ajusta sus propios parámetros sin intervención humana.
+Aipha es un sistema inteligente y autónomo que evoluciona continuamente. Implementa 5 capas de arquitectura: **Velocidad**, **Seguridad**, **Robustez**, **Consciencia** e **Inteligencia**.
 
 ## 🧬 ¿Qué hace único a Aipha?
 
-| Característica | Bots Tradicionales | Aipha v0.0.2 |
-|----------------|-------------------|--------------|
-| Memoria | ❌ Ninguna | ✅ Persistente |
-| Aprendizaje | ❌ Manual | ✅ Automático |
-| Adaptación | ❌ Requiere dev | ✅ Autónoma |
-| LLM | ❌ N/A | ✅ Qwen 2.5 Coder |
+| Característica | Bots Tradicionales | Aipha v2.0 |
+|----------------|-------------------|------------|
+| Velocidad | ❌ Segundos | ✅ <1s (SIGUSR1) |
+| Seguridad | ❌ Básica | ✅ ACID Atómica |
+| Robustez | ❌ Manual | ✅ Auto-recuperación |
+| Consciencia | ❌ N/A | ✅ Health Monitor |
+| Inteligencia | ❌ N/A | ✅ Qwen 2.5 Coder 32B |
 
-## 🏛️ Arquitectura
+## 🏛️ Arquitectura de 5 Capas
 
 ```
-                    ┌─────────────────────────┐
-                    │    CAPA 1: CORE         │
-                    │  (Autonomous Intel)     │
-                    └───────────┬─────────────┘
-                                │ ← Retroalimentación
-    ┌───────────────┬───────────┴───────────┬───────────────┐
-    │               │                       │               │
-    ▼               ▼                       ▼               ▼
-┌───────┐     ┌───────────┐          ┌──────────┐    ┌───────────┐
-│ Data  │ → → │ Trading   │ → → → → →│  Oracle  │ → →│   Post    │
-│Processor│   │ Manager   │          │   (ML)   │    │ Processor │
-└───────┘     └───────────┘          └──────────┘    └───────────┘
+┌─────────────────────────────────────────────────────┐
+│  CAPA 5: INTELIGENCIA (Qwen 2.5 Coder 32B LLM)     │
+├─────────────────────────────────────────────────────┤
+│  CAPA 4: CONSCIENCIA (Health Monitor + Quarantine) │
+├─────────────────────────────────────────────────────┤
+│  CAPA 3: ROBUSTEZ (Interrupciones Seguras)         │
+├─────────────────────────────────────────────────────┤
+│  CAPA 2: SEGURIDAD (Actualizaciones ACID)          │
+├─────────────────────────────────────────────────────┤
+│  CAPA 1: VELOCIDAD (File Watcher + SIGUSR1 <1s)   │
+└─────────────────────────────────────────────────────┘
 ```
 
 **Documentación completa**: [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## 🚀 Inicio Rápido
 
-### Ejecutar Simulación
+### Configuración Inicial
 ```bash
-export HF_API_KEY="your_huggingface_key"  # Para LLM
-export PYTHONPATH=$PYTHONPATH:.
-python3 life_cycle.py
+# 1. Copiar template de configuración
+cp .env.example .env
+
+# 2. Editar .env con tu API key de HuggingFace
+# Obtén un token en: https://huggingface.co/settings/tokens
+export AIPHA_BRAIN_KEY="hf_YOUR_TOKEN_HERE"
+
+# 3. Verificar que todo funciona
+python3 test_final.py
+```
+
+### Usar el CLI
+```bash
+# Ver estado del sistema
+python3 -m aiphalab.cli status
+
+# Ejecutar ciclo de automejora
+python3 -m aiphalab.cli cycle run
+
+# Dashboard en tiempo real
+python3 -m aiphalab.cli dashboard
+
+# Análisis con LLM
+python3 -m aiphalab.cli llm analyze orchestrator
 ```
 
 ### Ejecutar Tests
@@ -63,31 +84,28 @@ Aipha_0.0.2/
 └── life_cycle.py            # 🔄 Simulación del ciclo
 ```
 
-## 🔧 Componentes Principales
+## � Estructura del Proyecto
 
-| Componente | Archivo | Función |
-|------------|---------|---------|
-| Orquestador | `core/orchestrator.py` | Dirige ciclo de automejora |
-| Memoria | `core/context_sentinel.py` | Persistencia JSON/JSONL |
-| Proposer | `core/change_proposer.py` | Genera cambios dinámicos |
-| LLM | `core/llm_proposer.py` | Razonamiento avanzado |
-| Atómico | `core/atomic_update_system.py` | Protocolo de 5 pasos |
-
-## 📈 Estado Actual
-
-- ✅ Fase 1-3: Core funcional (Memoria, Propuestas, Ejecución)
-- ✅ Fase 4-5: Simulación multi-régimen
-- ✅ Fase 6: Múltiples regímenes de mercado
-- ✅ Fase 7: Hysteresis y límites de parámetros
-- ✅ Fase 8: Integración LLM (Qwen 2.5)
-
-## 🗺️ Próximos Pasos
-
-- [ ] Fase 9: Multi-Asset
-- [ ] Fase 10: Backtesting antes de aplicar
-- [ ] Fase 11: Ejecución en exchanges reales
-- [ ] Fase 12: Dashboard web
-
----
-
-*Aipha v0.0.2 - Un sistema que no solo opera, sino que evoluciona.*
+```
+Aipha_0.0.2/
+├── aiphalab/                 # 🖥️  Interface CLI
+│   ├── cli.py                # Comandos del sistema
+│   ├── dashboard.py          # Dashboard interactivo
+│   └── formatters.py         # Formateo de salida
+├── core/                      # 🧠 Núcleo (5 capas)
+│   ├── orchestrator_hardened.py   # Capa 1: Velocidad
+│   ├── atomic_update_system.py    # Capa 2: Seguridad
+│   ├── execution_queue.py         # Capa 3: Robustez
+│   ├── health_monitor.py          # Capa 4: Consciencia
+│   ├── quarantine_manager.py      # Capa 4: Consciencia
+│   ├── llm_client.py              # Capa 5: Inteligencia
+│   ├── llm_assistant.py           # Capa 5: Inteligencia
+│   └── ...
+├── tests/                    # 🧪 Test suite
+├── memory/                   # 💾 Almacenamiento persistente
+├── ARCHITECTURE.md           # Documentación de arquitectura
+├── IMPLEMENTATION_COMPLETE.md # Estado actual del sistema
+├── .env.example              # Template de configuración
+├── test_final.py             # Verificación del sistema
+└── pyproject.toml            # Configuración del proyecto
+```

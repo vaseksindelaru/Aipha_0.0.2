@@ -34,17 +34,23 @@ Aipha v2.0 está completamente implementado, integrado y listo para producción.
 ## 🛠️ CLI Disponible
 
 ```bash
-# Diagnosticar sistema
-aipha brain diagnose
+# Ver estado del sistema
+python3 -m aiphalab.cli status
 
-# Generar propuestas
-aipha brain propose
+# Ejecutar ciclo de automejora
+python3 -m aiphalab.cli cycle run
 
-# Ver salud del sistema
-aipha brain health
+# Dashboard en tiempo real
+python3 -m aiphalab.cli dashboard
+
+# Análisis con LLM
+python3 -m aiphalab.cli llm analyze orchestrator
+
+# Ver historial
+python3 -m aiphalab.cli history
 
 # Verificar conexión API
-python test_final.py
+python3 test_final.py
 ```
 
 ## 🔧 Configuración

@@ -1,14 +1,56 @@
-# Aipha v0.0.2 - Arquitectura del Sistema Autónomo
+# Aipha v2.0 - Arquitectura del Sistema Autónomo de 5 Capas
 
-> **Documento Consolidado**: Este archivo unifica toda---
+> **Sistema Completamente Operacional**: Todas las 5 capas implementadas y funcionales con integración de Qwen 2.5 Coder 32B LLM
 
-## 🎛️ CLI y Herramientas (v0.0.2+)
+---
 
-### Interface de Línea de Comandos (aiphalab/cli.py)
+## �️ Las 5 Capas Fundamentales
 
-La v0.0.2 incluye una interfaz CLI completa para interactuar con el sistema:
+### 🚀 CAPA 1: VELOCIDAD
+**Archivo**: `core/orchestrator_hardened.py`
 
-**Comandos Principales:**
+- Latencia <1 segundo
+- File Watcher para cambios automáticos
+- SIGUSR1 para interrupciones seguras
+- Ejecución paralela cuando posible
+
+### 🔐 CAPA 2: SEGURIDAD  
+**Archivo**: `core/atomic_update_system.py`
+
+- Actualizaciones atómicas (ACID)
+- Protocolo de 5 pasos verificado
+- Validación de configuración
+- Rollback automático en errores
+
+### 🛡️ CAPA 3: ROBUSTEZ
+**Archivo**: `core/execution_queue.py`
+
+- Cola de ejecución con prioridades
+- USER_IMMEDIATE para control
+- Pre-emption segura de ciclos
+- Recuperación de fallos
+
+### 💚 CAPA 4: CONSCIENCIA
+**Archivos**: `core/health_monitor.py`, `core/quarantine_manager.py`
+
+- Monitoreo continuo de salud
+- Quarantine para parámetros fallidos (24h)
+- Eventos de estado del sistema
+- Logging completo
+
+### 🧠 CAPA 5: INTELIGENCIA
+**Archivos**: `core/llm_client.py`, `core/llm_assistant.py`
+
+- Qwen 2.5 Coder 32B LLM
+- HuggingFace Router API (OpenAI compatible)
+- Análisis y diagnósticos automáticos
+- Integración completa con CLI
+
+---
+
+## 🎛️ Interface de Línea de Comandos
+
+### Comandos Disponibles (aiphalab/cli.py)
 
 | Comando | Descripción |
 |---------|-------------|
