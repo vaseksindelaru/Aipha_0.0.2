@@ -1,6 +1,115 @@
 # Aipha v0.0.2 - Arquitectura del Sistema Autónomo
 
-> **Documento Consolidado**: Este archivo unifica toda la documentación de arquitectura del proyecto para servir como referencia e inspiración para el desarrollo futuro.
+> **Documento Consolidado**: Este archivo unifica toda---
+
+## 🎛️ CLI y Herramientas (v0.0.2+)
+
+### Interface de Línea de Comandos (aiphalab/cli.py)
+
+La v0.0.2 incluye una interfaz CLI completa para interactuar con el sistema:
+
+**Comandos Principales:**
+
+| Comando | Descripción |
+|---------|-------------|
+| `aipha status` | Ver estado actual del sistema |
+| `aipha cycle run` | Ejecutar un ciclo de automejora |
+| `aipha cycle watch` | Ejecutar ciclos automáticos |
+| `aipha config view` | Ver configuración actual |
+| `aipha config validate` | Validar parámetros de configuración |
+| `aipha config suggest <param>` | Obtener sugerencias para un parámetro |
+| `aipha dashboard` | Dashboard en tiempo real |
+| `aipha history --limit N` | Ver historial de acciones |
+
+**Opciones Globales:**
+
+```bash
+# Modo Dry-Run: Simula ejecución sin persistencia
+aipha --dry-run cycle run
+```
+
+### Modo Dry-Run Global
+
+Añadido en v0.0.2, permite simular la ejecución de cualquier comando sin persistir cambios:
+
+```python
+# core/orchestrator.py - Refactorizado
+class CentralOrchestrator:
+    def __init__(self, storage_root: Path, use_llm: bool = False, dry_run: bool = False):
+        self.dry_run = dry_run
+        
+    def run_improvement_cycle(self, lookback_days: int = 7) -> Dict[str, Any]:
+        if self.dry_run:
+            # Solo simula cambios, no persiste
+            logger.info("[DRY-RUN MODE] Cambios simulados sin persistencia")
+```
+
+**Casos de uso:**
+- Testing seguro de cambios propuestos
+- Validación de configuración antes de aplicar
+- Simulación de ciclos sin modificar el sistema
+
+### Validadores de Configuración (core/config_validators.py)
+
+Sistema robusto de validación de parámetros usando Pydantic:
+
+```python
+from core.config_validators import ConfigValidator
+
+# Validar configuración completa
+is_valid, errors = ConfigValidator.validate_full_config(config_dict)
+
+# Validar parámetro específico
+is_valid, msg = ConfigValidator.validate_parameter("Trading", "tp_factor", 2.5)
+
+# Obtener reporte detallado
+report = ConfigValidator.get_validation_report(config_dict)
+```
+
+**Rangos de Validación:**
+
+| Parámetro | Rango | Descripción |
+|-----------|-------|-------------|
+| `atr_period` | 5-50 | Período del promedio verdadero |
+| `tp_factor` | 0.5-5.0 | Multiplicador de TP (> sl_factor) |
+| `sl_factor` | 0.1-3.0 | Multiplicador de SL |
+| `confidence_threshold` | 0.5-0.99 | Umbral del Oracle |
+| `n_estimators` | 10-1000 | Estimadores del modelo ML |
+
+### Dashboard en Tiempo Real (aiphalab/dashboard.py)
+
+Interfaz interactiva con rico para monitoreo en vivo:
+
+```bash
+aipha dashboard --interval 2  # Actualiza cada 2 segundos
+```
+
+**Paneles Mostrados:**
+- 📊 Métricas del sistema (última propuesta, cambios aplicados)
+- 📋 Propuestas recientes
+- 📜 Historial de acciones
+- ⚙️ Información del sistema
+
+---
+
+## 🧪 Sistema de Tests
+
+```bash
+# Tests del core
+pytest tests/test_context_sentinel.py tests/test_orchestrator.py -v
+
+# Tests de cambios
+pytest tests/test_change_proposer.py tests/test_atomic_update.py -v
+
+# Suite completa
+pytest tests/ -v
+```
+
+**Tests del CLI (v0.0.2+):**
+- Dry-run mode simula sin persistencia
+- Config validate verifica rangos
+- Dashboard imports correctamente
+- Todos los comandos compilablesión de arquitectura del proyecto para servir como referencia e inspiración para el desarrollo futuro.
 
 ---
 
@@ -161,28 +270,40 @@ LLM_CONFIG = {
 
 ## 📊 Comparación: Antes vs Después
 
-| Aspecto | v0.0.1 (Lineal) | v0.0.2 (Cerrado) |
-|---------|-----------------|------------------|
-| Memoria | ❌ Ninguna | ✅ Persistente |
-| Aprendizaje | ❌ Manual | ✅ Automático |
-| Cambios | ❌ Requiere dev | ✅ Autónomos |
-| Degradación | ❌ No detectada | ✅ Auto-revertida |
-| LLM | ❌ N/A | ✅ Qwen 2.5 Coder |
+| Aspecto | v0.0.1 (Lineal) | v0.0.2 (Cerrado) | v0.0.2+ (Con CLI) |
+|---------|-----------------|------------------|-------------------|
+| Memoria | ❌ Ninguna | ✅ Persistente | ✅ Persistente |
+| Aprendizaje | ❌ Manual | ✅ Automático | ✅ Automático |
+| Cambios | ❌ Requiere dev | ✅ Autónomos | ✅ Autónomos |
+| Degradación | ❌ No detectada | ✅ Auto-revertida | ✅ Auto-revertida |
+| LLM | ❌ N/A | ✅ Qwen 2.5 Coder | ✅ Qwen 2.5 Coder |
+| **CLI** | ❌ N/A | ❌ N/A | ✅ Completa |
+| **Dry-Run** | ❌ N/A | ❌ N/A | ✅ Global |
+| **Validación** | ❌ N/A | ❌ Manual | ✅ Automática |
+| **Dashboard** | ❌ N/A | ❌ N/A | ✅ Tiempo real |
 
 ---
 
-## 📁 Estructura del Proyecto (Post-Limpieza)
+## 📁 Estructura del Proyecto (Post-Limpieza v0.0.2+)
 
 ```
 Aipha_0.0.2/
 ├── core/                    # Capa 1: Autonomous Intelligence
-│   ├── orchestrator.py
+│   ├── orchestrator.py          (Refactorizado con dry_run)
 │   ├── context_sentinel.py
 │   ├── change_proposer.py
 │   ├── change_evaluator.py
 │   ├── atomic_update_system.py
+│   ├── config_managers.py
+│   ├── config_validators.py     (✨ NUEVO - v0.0.2+)
 │   ├── llm_proposer.py
 │   └── ...
+├── aiphalab/                # Capa 1: Interface y Herramientas
+│   ├── cli.py                   (✨ Actualizado - v0.0.2+)
+│   ├── dashboard.py             (✨ NUEVO - v0.0.2+)
+│   ├── assistant.py
+│   ├── formatters.py
+│   └── __init__.py
 ├── trading_manager/         # Capa 3: Estrategia
 │   └── building_blocks/
 │       └── labelers/
@@ -195,6 +316,11 @@ Aipha_0.0.2/
 ├── doc/                     # Documentación (legacy)
 └── life_cycle.py            # Simulación del ciclo de vida
 ```
+
+**Archivos Nuevos en v0.0.2+:**
+- `core/config_validators.py` - Validación Pydantic de configuración
+- `aiphalab/dashboard.py` - Dashboard en tiempo real con rich
+- `aiphalab/cli.py` (actualizado) - Soporte para dry-run y nuevos comandos
 
 ---
 
