@@ -33,6 +33,25 @@ Aipha v2.0 está completamente implementado, integrado y listo para producción.
 
 ## 🛠️ CLI Disponible
 
+### Super Cerebro - Comandos Brain 🧠
+```bash
+# Probar conexión con Qwen 2.5 Coder 32B
+aipha brain test-connection
+
+# Diagnóstico profundo del sistema con evidencia extraída
+aipha brain diagnose [--detailed]
+
+# Generar propuestas de mejora
+aipha brain propose
+
+# Estado de salud del sistema
+aipha brain health
+
+# Ver ayuda
+aipha brain --help
+```
+
+### Comandos Generales
 ```bash
 # Ver estado del sistema
 python3 -m aiphalab.cli status
@@ -86,10 +105,10 @@ python test_final.py
 │   ├── health_monitor.py          # Monitor de salud del sistema
 │   ├── quarantine_manager.py      # Gestor de cuarentena de parámetros
 │   ├── llm_client.py              # Cliente LLM seguro
-│   ├── llm_assistant.py           # Asistente de análisis
+│   ├── llm_assistant.py           # Asistente de análisis + diagnósticos
 │   └── ...                        # Otros módulos
 ├── aiphalab/
-│   ├── cli.py                     # Interface de línea de comandos
+│   ├── cli.py                     # CLI con brain command group
 │   ├── dashboard.py               # Dashboard de monitoreo
 │   └── ...
 ├── .env.example                   # Template de configuración
@@ -97,18 +116,68 @@ python test_final.py
 └── README.md                      # Documentación principal
 ```
 
+## 🧠 Super Cerebro - Características
+
+### Diagnóstico Profundo (`brain diagnose`)
+- ✅ Extracción de evidencia con citas de líneas exactas
+- ✅ Análisis de parámetros en riesgo con tabla visual
+- ✅ Detección automática de SIMULATION_MODE
+- ✅ Generación de comandos copy-paste para correcciones
+- ✅ Flag `--detailed` para análisis expandido
+
+### Componentes del Diagnóstico
+1. **Estado General**: Eventos registrados, parámetros en cuarentena, modo simulación
+2. **Métricas Clave**: Latencia, drawdown, tasa de error
+3. **Advertencias**: Problemas detectados con severidad
+4. **Evidencia Citada**: Líneas específicas de logs con contexto
+5. **Comandos Sugeridos**: Copy-paste ready para implementar cambios
+
+### Otros Comandos Brain
+- **test-connection**: Verifica conexión Qwen 2.5 Coder 32B
+- **health**: Tabla de estado de componentes
+- **propose**: Genera propuestas de mejora automáticas
+
 ## 🚀 Próximos Pasos
 
 1. **Configurar API Key**: Editar `.env` con tu token de HuggingFace
-2. **Probar Sistema**: `python test_final.py`
-3. **Ejecutar CLI**: `aipha brain diagnose`
-4. **Monitorear Salud**: `aipha brain health`
+   ```bash
+   echo "AIPHA_BRAIN_KEY=hf_your_token_here" > .env
+   ```
+
+2. **Probar Sistema**: 
+   ```bash
+   python test_final.py
+   ```
+
+3. **Ejecutar Diagnóstico**: 
+   ```bash
+   aipha brain diagnose
+   ```
+
+4. **Monitorear Salud**: 
+   ```bash
+   aipha brain health
+   ```
 
 ## 🔐 Seguridad
 
 - ✅ API keys no están en git
 - ✅ `.gitignore` protege `.env`
 - ✅ `.env.example` proporciona template seguro
+- ✅ Validación de API key en cada comando brain
+
+## 📈 Capacidades Técnicas
+
+| Capacidad | Estado | Detalles |
+|-----------|--------|----------|
+| Latencia < 1s | ✅ Activa | Interrupciones SIGUSR1 + File Watcher |
+| Seguridad ACID | ✅ Activa | Atomic Updates + Validación de config |
+| Robustez | ✅ Activa | Safe-interrupt + Quarantine system |
+| Consciencia | ✅ Activa | Health Monitor + Health events.jsonl |
+| Inteligencia IA | ✅ Activa | Qwen 2.5 Coder 32B con diagnósticos |
+| CLI Brain | ✅ Activa | 4 comandos (test, diagnose, propose, health) |
+| Diagnóstico Profundo | ✅ Activa | Extracción de evidencia + análisis de riesgo |
+
 - ✅ Tokens almacenados solo localmente
 - ✅ Variables de entorno validadas al inicio
 
