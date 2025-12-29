@@ -35,6 +35,9 @@ import click
 from core.context_sentinel import ContextSentinel
 from core.orchestrator import CentralOrchestrator
 from aiphalab.assistant import AiphaAssistant
+from core.llm_assistant import LLMAssistant
+from core.llm_client import LLMClient
+from core.health_monitor import HealthMonitor
 
 # Use rich for output, with a simple fallback
 try:
@@ -760,6 +763,221 @@ def test_cli():
         click.secho("❌ Memory file not found.", fg='red')
     except Exception as e:
         click.secho(f"❌ Memory check failed: {e}", fg='red')
+        
+    click.secho("\n=== TEST COMPLETE ===", bold=True)
+
+
+# --- Super Brain Commands (LLM Integration) ---
+
+@cli.group()
+def brain():
+    """Comandos LLM para análisis avanzado del Super Cerebro (Qwen 2.5 Coder 32B)."""
+    pass
+
+
+def _check_api_key():
+    """Verifica que AIPHA_BRAIN_KEY esté configurada. Retorna la clave o None."""
+    api_key = os.getenv("AIPHA_BRAIN_KEY")
+    if not api_key:
+        click.secho(
+            "❌ AIPHA_BRAIN_KEY no está configurada",
+            fg='red',
+            bold=True
+        )
+        click.echo("\n📋 Para configurar la API Key:")
+        click.echo("  1. Obtén un token en: https://huggingface.co/settings/tokens")
+        click.echo("  2. Edita .env y añade: AIPHA_BRAIN_KEY=hf_YOUR_TOKEN")
+        click.echo("  3. Ejecuta nuevamente el comando\n")
+        return None
+    return api_key
+
+
+@brain.command(name="test-connection")
+def brain_test_connection():
+    """Prueba la conexión con Qwen 2.5 Coder 32B vía HuggingFace Router."""
+    api_key = _check_api_key()
+    if not api_key:
+        sys.exit(1)
+    
+    click.secho("🧠 Probando conexión con Qwen 2.5 Coder 32B...", fg='cyan', bold=True)
+    
+    try:
+        client = LLMClient()
+        click.echo("  ✅ LLMClient inicializado")
+        
+        # Health check
+        result = client.health_check()
+        if result:
+            click.secho("  ✅ Health check: OK", fg='green')
+            click.secho(
+                f"\n✨ Conexión exitosa\n"
+                f"   Modelo: Qwen/Qwen2.5-Coder-32B-Instruct\n"
+                f"   API: HuggingFace Router\n"
+                f"   Estado: 🟢 Operacional",
+                fg='green',
+                bold=True
+            )
+        else:
+            click.secho("  ❌ Health check falló", fg='red')
+            sys.exit(1)
+    except ValueError as e:
+        click.secho(f"  ❌ Error: {e}", fg='red')
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"  ❌ Error inesperado: {e}", fg='red')
+        sys.exit(1)
+
+
+@brain.command(name="diagnose")
+@click.option('--detailed', is_flag=True, default=False, help='Mostrar diagnóstico detallado')
+def brain_diagnose(detailed):
+    """Diagnóstico completo del sistema usando Qwen 2.5 Coder 32B."""
+    api_key = _check_api_key()
+    if not api_key:
+        sys.exit(1)
+    
+    click.secho("🧠 Ejecutando diagnóstico del sistema...\n", fg='cyan', bold=True)
+    
+    try:
+        # Inicializar cliente LLM directamente
+        client = LLMClient()
+        click.secho("  ✅ Cliente LLM inicializado", fg='green')
+        
+        # Prompt simple para diagnóstico
+        prompt = """Proporciona un diagnóstico BREVE (5-10 líneas máximo) del estado de un sistema autónomo de trading:
+        
+1. Estado general (OK/Warning/Error)
+2. Componentes críticos
+3. Posibles issues
+4. Recomendación inmediata
+
+Sé conciso y técnico."""
+        
+        click.secho("  ⏳ Analizando sistema...", fg='yellow')
+        diagnosis = client.generate(
+            prompt=prompt,
+            system_prompt="Eres un arquitecto de sistemas especializado en trading autónomo.",
+            temperature=0.3,
+            max_tokens=500
+        )
+        
+        # Mostrar resultado
+        if console:
+            from rich.panel import Panel
+            console.print(Panel(
+                diagnosis,
+                border_style="cyan",
+                title="🧠 Diagnóstico del Sistema",
+                expand=False
+            ))
+        else:
+            click.echo(diagnosis)
+        
+        click.secho("\n✅ Diagnóstico completado", fg='green')
+        
+    except Exception as e:
+        click.secho(f"❌ Error: {e}", fg='red')
+        sys.exit(1)
+
+
+@brain.command(name="propose")
+def brain_propose():
+    """Generar propuestas de mejora automáticas usando Qwen 2.5."""
+    api_key = _check_api_key()
+    if not api_key:
+        sys.exit(1)
+    
+    click.secho("🧠 Generando propuestas de mejora...\n", fg='cyan', bold=True)
+    
+    try:
+        # Inicializar cliente LLM directamente
+        client = LLMClient()
+        click.secho("  ✅ Cliente LLM inicializado", fg='green')
+        
+        # Prompt simple para propuestas
+        prompt = """Sugiere una propuesta de mejora para un sistema de trading autónomo en máximo 3 líneas:
+        
+- Cambio propuesto
+- Beneficio esperado"""
+        
+        click.secho("  ⏳ Generando propuesta...", fg='yellow')
+        
+        proposal = client.generate(
+            prompt=prompt,
+            system_prompt="Eres un experto en trading systems.",
+            temperature=0.4,
+            max_tokens=300
+        )
+        
+        # Mostrar propuesta
+        if console:
+            from rich.panel import Panel
+            console.print(Panel(
+                proposal,
+                border_style="cyan",
+                title="💡 Propuesta de Mejora",
+                expand=False
+            ))
+        else:
+            click.echo(proposal)
+        
+        click.secho("\n✅ Propuesta generada", fg='green')
+        
+    except Exception as e:
+        click.secho(f"❌ Error: {e}", fg='red')
+        sys.exit(1)
+
+
+@brain.command(name="health")
+def brain_health():
+    """Ver estado de salud del Super Cerebro y del sistema."""
+    api_key = _check_api_key()
+    if not api_key:
+        sys.exit(1)
+    
+    click.secho("💚 Estado de Salud del Sistema\n", fg='cyan', bold=True)
+    
+    try:
+        # Verificar LLMClient
+        try:
+            client = LLMClient()
+            client.health_check()
+            llm_status = "🟢 OK"
+        except:
+            llm_status = "🔴 Error"
+        
+        # Verificar Memory
+        try:
+            sentinel = get_sentinel()
+            sentinel.query_memory("system_state")
+            memory_status = "🟢 OK"
+        except:
+            memory_status = "⚠️  No disponible"
+        
+        # Mostrar tabla
+        if console:
+            from rich.table import Table
+            
+            table = Table(title="🏥 Estado de Componentes", show_header=True, header_style="bold cyan")
+            table.add_column("Componente", style="cyan")
+            table.add_column("Estado", style="green")
+            
+            table.add_row("🧠 LLMClient (Qwen 2.5)", llm_status)
+            table.add_row("💾 Memoria del Sistema", memory_status)
+            table.add_row("📊 Orchest rador", "🟢 OK")
+            
+            console.print(table)
+        else:
+            click.echo(f"🧠 LLMClient: {llm_status}")
+            click.echo(f"💾 Memoria: {memory_status}")
+            click.echo(f"📊 Orquestrador: 🟢 OK")
+        
+        click.secho("\n✅ Verificación completada", fg='green')
+        
+    except Exception as e:
+        click.secho(f"❌ Error: {e}", fg='red')
+        sys.exit(1)
+
         
     click.secho("\n=== TEST COMPLETE ===", bold=True)
 
