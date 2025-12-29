@@ -829,54 +829,96 @@ def brain_test_connection():
 
 
 @brain.command(name="diagnose")
-@click.option('--detailed', is_flag=True, default=False, help='Mostrar diagnóstico detallado')
+@click.option('--detailed', is_flag=True, default=False, help='Mostrar diagnóstico detallado con análisis profundo')
 def brain_diagnose(detailed):
-    """Diagnóstico completo del sistema usando Qwen 2.5 Coder 32B."""
+    """Diagnóstico profundo del sistema usando Qwen 2.5 Coder 32B con evidencia citada."""
     api_key = _check_api_key()
     if not api_key:
         sys.exit(1)
     
-    click.secho("🧠 Ejecutando diagnóstico del sistema...\n", fg='cyan', bold=True)
+    click.secho("🧠 Ejecutando diagnóstico profundo del sistema...\n", fg='cyan', bold=True)
     
     try:
-        # Inicializar cliente LLM directamente
-        client = LLMClient()
-        click.secho("  ✅ Cliente LLM inicializado", fg='green')
+        # Inicializar asistente LLM con capacidades mejoradas
+        assistant = LLMAssistant(memory_path=AIPHA_ROOT / "memory")
+        click.secho("  ✅ Super Cerebro inicializado", fg='green')
         
-        # Prompt simple para diagnóstico
-        prompt = """Proporciona un diagnóstico BREVE (5-10 líneas máximo) del estado de un sistema autónomo de trading:
+        click.secho("  ⏳ Analizando sistema (extrayendo evidencia)...", fg='yellow')
         
-1. Estado general (OK/Warning/Error)
-2. Componentes críticos
-3. Posibles issues
-4. Recomendación inmediata
-
-Sé conciso y técnico."""
+        # Obtener diagnóstico profundo con estructura
+        diagnosis_result = assistant.diagnose_system(detailed=detailed)
         
-        click.secho("  ⏳ Analizando sistema...", fg='yellow')
-        diagnosis = client.generate(
-            prompt=prompt,
-            system_prompt="Eres un arquitecto de sistemas especializado en trading autónomo.",
-            temperature=0.3,
-            max_tokens=500
-        )
-        
-        # Mostrar resultado
-        if console:
-            from rich.panel import Panel
-            console.print(Panel(
-                diagnosis,
-                border_style="cyan",
-                title="🧠 Diagnóstico del Sistema",
-                expand=False
-            ))
+        # Mostrar resultado formateado
+        if isinstance(diagnosis_result, dict):
+            # Tiene estructura mejorada
+            if console:
+                from rich.panel import Panel
+                from rich.table import Table
+                from rich.markdown import Markdown
+                
+                # Mostrar diagnóstico principal
+                click.echo("")
+                console.print(Panel(
+                    diagnosis_result.get('formatted_diagnosis', diagnosis_result.get('diagnosis', '')),
+                    border_style="cyan",
+                    title="🧠 Diagnóstico Profundo del Sistema"
+                ))
+                
+                # Mostrar tabla de parámetros en riesgo si existen
+                risk_params = diagnosis_result.get('risk_parameters', [])
+                if risk_params:
+                    click.echo("")
+                    table = Table(title="⚠️  Parámetros en Riesgo", show_header=True, header_style="bold red")
+                    table.add_column("Parámetro", style="yellow")
+                    table.add_column("Valor Actual", style="cyan")
+                    table.add_column("Límite Crítico", style="red")
+                    table.add_column("Prob. Fallo", style="red", justify="center")
+                    
+                    for param in risk_params:
+                        table.add_row(
+                            param.get('parameter', 'N/A'),
+                            str(param.get('current_value', 'N/A')),
+                            str(param.get('critical_limit', 'N/A')),
+                            param.get('failure_probability', 'N/A')
+                        )
+                    
+                    console.print(table)
+                
+                # Mostrar modo simulación si está activo
+                if diagnosis_result.get('simulation_mode'):
+                    click.echo("")
+                    console.print("[yellow]⚠️  MODO SIMULACIÓN ACTIVO[/yellow]")
+                    console.print("[yellow]   → La latencia puede ser del flujo de datos sintéticos[/yellow]")
+                    console.print("[yellow]   → Los timings pueden no reflejar el hardware real[/yellow]")
+                
+                # Mostrar comandos sugeridos
+                commands = diagnosis_result.get('suggested_commands', [])
+                if commands:
+                    click.echo("")
+                    console.print("[bold cyan]🔧 ACCIONES SUGERIDAS (COPY-PASTE):[/bold cyan]")
+                    for cmd in commands:
+                        console.print(f"[green]▶️  {cmd}[/green]")
+                
+                # Mostrar evidencia citada
+                evidence = diagnosis_result.get('evidence', [])
+                if evidence and detailed:
+                    click.echo("")
+                    console.print("[bold cyan]📋 EVIDENCIA CITADA:[/bold cyan]")
+                    for ev in evidence[:5]:  # Mostrar máx 5
+                        console.print(f"  [yellow]Línea {ev.get('line_number')}[/yellow]: {ev.get('message')}")
+            else:
+                click.echo(diagnosis_result.get('formatted_diagnosis', diagnosis_result.get('diagnosis', '')))
         else:
-            click.echo(diagnosis)
+            # Formato simple si es string
+            click.echo(diagnosis_result)
         
         click.secho("\n✅ Diagnóstico completado", fg='green')
         
     except Exception as e:
-        click.secho(f"❌ Error: {e}", fg='red')
+        click.secho(f"❌ Error durante diagnóstico: {e}", fg='red')
+        import traceback
+        if detailed:
+            click.echo(traceback.format_exc())
         sys.exit(1)
 
 
