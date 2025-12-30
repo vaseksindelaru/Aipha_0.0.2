@@ -18,5 +18,8 @@
   },
   "Orchestrator": {
     "confidence_threshold": 0.75
+  },
+  "orchestrator": {
+    "confidence_threshold": "0.65"
   }
 }

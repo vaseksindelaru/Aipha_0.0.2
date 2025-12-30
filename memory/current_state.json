@@ -1,8 +1,8 @@
 {
   "system_info": {
     "version": "0.0.2",
-    "mode": "AUTONOMOUS_LLM",
-    "last_boot": "2025-12-27T17:29:33.559161Z"
+    "mode": "AUTONOMOUS",
+    "last_boot": "2025-12-29T20:41:51.054944Z"
   },
   "development_flags": {
     "phase_1_memory_active": true,
@@ -22,11 +22,11 @@
     "volatility": "NORMAL"
   },
   "system_state": {
-    "last_improvement_cycle": "2025-12-27T17:29:53.250299Z",
+    "last_improvement_cycle": "2025-12-29T20:41:51.067880Z",
     "last_cycle_proposals": 1,
     "last_cycle_approved": 1,
     "last_cycle_applied": 1,
-    "last_cycle_duration_seconds": 6.69576
+    "last_cycle_duration_seconds": 2.623166
   },
   "proposal_history": {
     "last_type": "tighten",

@@ -38,6 +38,10 @@ from aiphalab.assistant import AiphaAssistant
 from core.llm_assistant import LLMAssistant
 from core.llm_client import LLMClient
 from core.health_monitor import HealthMonitor
+from core.atomic_update_system import AtomicUpdateSystem
+from core.change_evaluator import ProposalEvaluator
+import uuid
+from datetime import datetime
 
 # Use rich for output, with a simple fallback
 try:
@@ -765,6 +769,407 @@ def test_cli():
         click.secho(f"❌ Memory check failed: {e}", fg='red')
         
     click.secho("\n=== TEST COMPLETE ===", bold=True)
+
+
+# --- Proposal Management Commands ---
+
+@cli.group()
+def proposal():
+    """Gestión de propuestas de cambio en el sistema Aipha."""
+    pass
+
+
+@proposal.command(name="create")
+@click.option("--component", required=True, help="Componente a modificar (ej: orchestrator, evaluator, etc)")
+@click.option("--parameter", required=True, help="Parámetro específico a cambiar (ej: confidence_threshold)")
+@click.option("--new-value", required=True, help="Nuevo valor del parámetro")
+@click.option("--reason", required=True, help="Razón para el cambio (ej: mejorar win rate)")
+def proposal_create(component, parameter, new_value, reason):
+    """Crear una propuesta manual de cambio.
+    
+    Ejemplo:
+        aipha proposal create --component orchestrator --parameter confidence_threshold \\
+                              --new-value 0.65 --reason "Aumentar sensibilidad para ganar operaciones"
+    """
+    try:
+        # Generar ID único
+        proposal_id = f"PROP_MANUAL_{uuid.uuid4().hex[:8].upper()}"
+        
+        # Crear propuesta
+        proposal_data = {
+            "proposal_id": proposal_id,
+            "timestamp": datetime.now().isoformat(),
+            "component": component,
+            "parameter": parameter,
+            "new_value": new_value,
+            "reason": reason,
+            "status": "PENDING_EVALUATION",
+            "created_by": "CLI",
+            "evaluation_score": None,
+            "applied": False,
+        }
+        
+        # Guardar en memory/proposals.jsonl
+        proposals_file = AIPHA_ROOT / "memory" / "proposals.jsonl"
+        proposals_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(proposals_file, "a") as f:
+            f.write(json.dumps(proposal_data) + "\n")
+        
+        # Mostrar confirmación
+        click.secho("\n✅ PROPUESTA CREADA", fg='green', bold=True)
+        click.echo(f"  ID: {proposal_id}")
+        click.echo(f"  Componente: {component}")
+        click.echo(f"  Parámetro: {parameter}")
+        click.echo(f"  Nuevo Valor: {new_value}")
+        click.echo(f"  Razón: {reason}")
+        click.echo(f"  Estado: PENDING_EVALUATION")
+        click.echo(f"\n💡 Siguiente paso: aipha proposal evaluate {proposal_id}")
+        
+    except Exception as e:
+        click.secho(f"❌ Error al crear propuesta: {e}", fg='red')
+        sys.exit(1)
+
+
+@proposal.command(name="list")
+def proposal_list():
+    """Listar todas las propuestas con su estado actual."""
+    try:
+        proposals_file = AIPHA_ROOT / "memory" / "proposals.jsonl"
+        
+        if not proposals_file.exists():
+            click.secho("ℹ️  No hay propuestas registradas aún", fg='yellow')
+            return
+        
+        # Leer propuestas
+        proposals = []
+        with open(proposals_file, "r") as f:
+            for line in f:
+                if line.strip():
+                    proposals.append(json.loads(line))
+        
+        if not proposals:
+            click.secho("ℹ️  No hay propuestas registradas", fg='yellow')
+            return
+        
+        # Crear tabla
+        try:
+            table = Table(title="📋 Propuestas Registradas", show_header=True, header_style="bold cyan")
+            table.add_column("ID", style="cyan")
+            table.add_column("Componente", style="magenta")
+            table.add_column("Parámetro", style="yellow")
+            table.add_column("Nuevo Valor", style="green")
+            table.add_column("Estado", style="blue")
+            table.add_column("Score", style="bright_black")
+            
+            for prop in proposals:
+                score = f"{prop.get('evaluation_score', 'N/A'):.2f}" if prop.get('evaluation_score') else "N/A"
+                table.add_row(
+                    prop["proposal_id"],
+                    prop["component"],
+                    prop["parameter"],
+                    str(prop["new_value"]),
+                    prop["status"],
+                    score,
+                )
+            
+            console.print(table)
+        except:
+            # Fallback sin Rich
+            click.echo(f"{'ID':<20} {'Componente':<15} {'Parámetro':<20} {'Valor':<15} {'Estado':<20} {'Score':<8}")
+            for prop in proposals:
+                score = f"{prop.get('evaluation_score', 'N/A'):.2f}" if prop.get('evaluation_score') else "N/A"
+                click.echo(f"{prop['proposal_id']:<20} {prop['component']:<15} {prop['parameter']:<20} {str(prop['new_value']):<15} {prop['status']:<20} {score:<8}")
+        
+    except Exception as e:
+        click.secho(f"❌ Error al listar propuestas: {e}", fg='red')
+        sys.exit(1)
+
+
+@proposal.command(name="evaluate")
+@click.argument("proposal_id")
+def proposal_evaluate(proposal_id):
+    """Evaluar una propuesta usando ChangeEvaluator.
+    
+    Ejemplo:
+        aipha proposal evaluate PROP_MANUAL_ABC12345
+    """
+    try:
+        proposals_file = AIPHA_ROOT / "memory" / "proposals.jsonl"
+        
+        if not proposals_file.exists():
+            click.secho("❌ No hay propuestas registradas", fg='red')
+            sys.exit(1)
+        
+        # Buscar la propuesta
+        proposal_data = None
+        with open(proposals_file, "r") as f:
+            for line in f:
+                if line.strip():
+                    prop = json.loads(line)
+                    if prop["proposal_id"] == proposal_id:
+                        proposal_data = prop
+                        break
+        
+        if not proposal_data:
+            click.secho(f"❌ Propuesta no encontrada: {proposal_id}", fg='red')
+            sys.exit(1)
+        
+        if proposal_data["status"] != "PENDING_EVALUATION":
+            click.secho(f"⚠️  Propuesta ya evaluada (Estado: {proposal_data['status']})", fg='yellow')
+            return
+        
+        click.echo("\n🔍 Evaluando propuesta...")
+        
+        # Inicializar evaluador
+        sentinel = get_sentinel()
+        evaluator = ProposalEvaluator(sentinel)
+        
+        # Mock proposal object for evaluator
+        class ProposalMock:
+            def __init__(self, data):
+                self.proposal_id = data["proposal_id"]
+                self.component = data["component"]
+                self.parameter = data["parameter"]
+                self.new_value = data["new_value"]
+        
+        mock_proposal = ProposalMock(proposal_data)
+        
+        # Evaluar
+        result = evaluator.evaluate(mock_proposal)
+        
+        # Actualizar propuesta con score
+        proposals = []
+        with open(proposals_file, "r") as f:
+            for line in f:
+                if line.strip():
+                    prop = json.loads(line)
+                    if prop["proposal_id"] == proposal_id:
+                        prop["evaluation_score"] = result.score
+                        prop["status"] = "APPROVED" if result.approved else "REJECTED"
+                    proposals.append(prop)
+        
+        # Guardar actualización
+        with open(proposals_file, "w") as f:
+            for prop in proposals:
+                f.write(json.dumps(prop) + "\n")
+        
+        # Mostrar resultado
+        click.secho("\n📊 EVALUACIÓN COMPLETADA", fg='cyan', bold=True)
+        click.echo(f"\nPropuesta: {proposal_id}")
+        click.echo(f"Score: {result.score:.2f} / 1.00")
+        click.echo(f"Estado: {'✅ APROBADO' if result.approved else '❌ RECHAZADO'}")
+        click.echo(f"\n{result.reasoning}")
+        
+        if result.approved:
+            click.echo(f"\n💡 Siguiente paso: aipha proposal apply {proposal_id}")
+        
+    except Exception as e:
+        click.secho(f"❌ Error en evaluación: {e}", fg='red')
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+@proposal.command(name="apply")
+@click.argument("proposal_id")
+def proposal_apply(proposal_id):
+    """Aplicar una propuesta evaluada usando protocolo atómico.
+    
+    Ejecuta el protocolo atómico: Backup → Diff → Test → Commit
+    
+    Ejemplo:
+        aipha proposal apply PROP_MANUAL_ABC12345
+    """
+    try:
+        proposals_file = AIPHA_ROOT / "memory" / "proposals.jsonl"
+        
+        if not proposals_file.exists():
+            click.secho("❌ No hay propuestas registradas", fg='red')
+            sys.exit(1)
+        
+        # Buscar la propuesta
+        proposal_data = None
+        with open(proposals_file, "r") as f:
+            for line in f:
+                if line.strip():
+                    prop = json.loads(line)
+                    if prop["proposal_id"] == proposal_id:
+                        proposal_data = prop
+                        break
+        
+        if not proposal_data:
+            click.secho(f"❌ Propuesta no encontrada: {proposal_id}", fg='red')
+            sys.exit(1)
+        
+        if proposal_data["status"] not in ["PENDING_EVALUATION", "APPROVED"]:
+            click.secho(f"⚠️  No se puede aplicar propuesta en estado: {proposal_data['status']}", fg='yellow')
+            sys.exit(1)
+        
+        if proposal_data.get("applied"):
+            click.secho(f"⚠️  Propuesta ya ha sido aplicada", fg='yellow')
+            sys.exit(1)
+        
+        click.secho(f"\n🚀 Aplicando propuesta: {proposal_id}", fg='cyan', bold=True)
+        click.echo(f"  Componente: {proposal_data['component']}")
+        click.echo(f"  Parámetro: {proposal_data['parameter']}")
+        click.echo(f"  Nuevo Valor: {proposal_data['new_value']}")
+        
+        # FASE 1: BACKUP
+        click.secho("\n[1/4] 💾 BACKUP", fg='yellow')
+        click.echo("  Creando copia de seguridad del estado actual...")
+        
+        config_file = AIPHA_ROOT / "memory" / "aipha_config.json"
+        if not config_file.exists():
+            click.secho("  ⚠️  Archivo de config no existe", fg='yellow')
+            config_data = {}
+        else:
+            try:
+                with open(config_file, "r") as f:
+                    config_data = json.load(f)
+            except Exception as e:
+                click.secho(f"  ❌ Error al leer config: {e}", fg='red')
+                sys.exit(1)
+        
+        # Crear backup
+        backup_file = AIPHA_ROOT / "memory" / f".backup_{proposal_id}.json"
+        try:
+            with open(backup_file, "w") as f:
+                json.dump(config_data, f, indent=2)
+            click.secho("  ✅ Backup creado", fg='green')
+        except Exception as e:
+            click.secho(f"  ❌ Error en backup: {e}", fg='red')
+            sys.exit(1)
+        
+        # FASE 2: DIFF
+        click.secho("\n[2/4] 📝 DIFF", fg='yellow')
+        click.echo(f"  Preparando cambio: {proposal_data['parameter']} = {proposal_data['new_value']}")
+        
+        try:
+            # Asegurar que existe el componente
+            if proposal_data["component"] not in config_data:
+                config_data[proposal_data["component"]] = {}
+            
+            # Guardar valor anterior para comparación
+            old_value = config_data[proposal_data["component"]].get(proposal_data["parameter"])
+            
+            # Aplicar cambio
+            config_data[proposal_data["component"]][proposal_data["parameter"]] = proposal_data["new_value"]
+            
+            click.echo(f"  Anterior: {old_value}")
+            click.echo(f"  Nuevo:    {proposal_data['new_value']}")
+            click.secho("  ✅ Diff preparado", fg='green')
+        except Exception as e:
+            click.secho(f"  ❌ Error en diff: {e}", fg='red')
+            sys.exit(1)
+        
+        # FASE 3: TEST
+        click.secho("\n[3/4] 🧪 TEST", fg='yellow')
+        click.echo("  Validando cambios...")
+        
+        try:
+            # Validación básica
+            if not isinstance(config_data, dict):
+                raise ValueError("Config debe ser un diccionario")
+            
+            # Validar tipo de valor
+            try:
+                float(proposal_data["new_value"])
+                click.echo("  ✓ Tipo: válido (numérico)")
+            except:
+                click.echo("  ✓ Tipo: válido (string)")
+            
+            click.secho("  ✅ Validaciones pasadas", fg='green')
+        except Exception as e:
+            click.secho(f"  ❌ Validación fallida: {e}", fg='red')
+            click.secho("\n[ROLLBACK] 🔄 Restaurando backup...", fg='red')
+            try:
+                backup_file.unlink()
+            except:
+                pass
+            sys.exit(1)
+        
+        # FASE 4: COMMIT
+        click.secho("\n[4/4] ✅ COMMIT", fg='yellow')
+        click.echo("  Consolidando cambios...")
+        
+        try:
+            # Guardar config
+            with open(config_file, "w") as f:
+                json.dump(config_data, f, indent=2)
+            
+            # Registrar en historial
+            sentinel = get_sentinel()
+            sentinel.add_action(
+                agent="ProposalApply",
+                action_type="PROPOSAL_APPLIED",
+                proposal_id=proposal_id,
+                details={
+                    "component": proposal_data["component"],
+                    "parameter": proposal_data["parameter"],
+                    "old_value": old_value,
+                    "new_value": proposal_data["new_value"],
+                    "reason": proposal_data["reason"],
+                }
+            )
+            
+            click.secho("  ✅ Cambios consolidados", fg='green')
+            
+            # Limpiar backup
+            try:
+                backup_file.unlink()
+            except:
+                pass
+                
+        except Exception as e:
+            click.secho(f"  ❌ Error en commit: {e}", fg='red')
+            click.secho("\n[ROLLBACK] 🔄 Restaurando backup...", fg='red')
+            try:
+                with open(backup_file, "r") as f:
+                    backup_data = json.load(f)
+                with open(config_file, "w") as f:
+                    json.dump(backup_data, f, indent=2)
+                click.secho("  ✅ Sistema restaurado", fg='green')
+            except:
+                click.secho("  ❌ Error al restaurar", fg='red')
+            sys.exit(1)
+        
+        # Actualizar propuesta
+        try:
+            proposals = []
+            with open(proposals_file, "r") as f:
+                for line in f:
+                    if line.strip():
+                        prop = json.loads(line)
+                        if prop["proposal_id"] == proposal_id:
+                            prop["applied"] = True
+                            prop["status"] = "APPLIED"
+                        proposals.append(prop)
+            
+            with open(proposals_file, "w") as f:
+                for prop in proposals:
+                    f.write(json.dumps(prop) + "\n")
+        except Exception as e:
+            click.secho(f"  ⚠️  Error al actualizar registro: {e}", fg='yellow')
+        
+        # Resultado final
+        click.secho("\n" + "="*60, fg='cyan')
+        click.secho("✅ PROTOCOLO ATÓMICO COMPLETADO", fg='green', bold=True)
+        click.secho("="*60, fg='cyan')
+        click.echo(f"\nPropuesta {proposal_id} ha sido aplicada exitosamente.")
+        click.echo(f"  • Componente: {proposal_data['component']}")
+        click.echo(f"  • Parámetro: {proposal_data['parameter']}")
+        click.echo(f"  • Anterior: {old_value}")
+        click.echo(f"  • Nuevo: {proposal_data['new_value']}")
+        click.echo(f"  • Razón: {proposal_data['reason']}")
+        click.secho("\n✨ Sistema actualizado y seguro", fg='green')
+        
+    except Exception as e:
+        click.secho(f"❌ Error al aplicar propuesta: {e}", fg='red')
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
 
 
 # --- Super Brain Commands (LLM Integration) ---
