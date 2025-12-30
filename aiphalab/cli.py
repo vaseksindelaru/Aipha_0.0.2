@@ -1347,6 +1347,13 @@ def brain_diagnose(detailed):
                             console.print(f"  [yellow]Línea {ev.get('line_number', 'N/A')}[/yellow]: {ev.get('message', 'N/A')}")
                         else:
                             console.print(f"  [yellow]{str(ev)[:50]}[/yellow]")
+                
+                # Mostrar análisis detallado del LLM si está disponible
+                llm_analysis = diagnosis_result.get('llm_analysis', None)
+                if llm_analysis and detailed:
+                    click.echo("")
+                    console.print("[bold cyan]🤖 ANÁLISIS DETALLADO DEL SUPER CEREBRO:[/bold cyan]")
+                    console.print(Markdown(llm_analysis))
             else:
                 click.echo(diagnosis_result.get('formatted_diagnosis', diagnosis_result.get('diagnosis', '')))
         else:

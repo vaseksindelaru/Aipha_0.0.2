@@ -82,46 +82,98 @@ class LLMAssistant:
     
     def get_diagnose_context(self) -> Dict:
         """
-        Construir contexto de diagnóstico
+        Construir contexto RICO de diagnóstico para que el LLM entienda
+        tanto cambios automáticos como manuales y su impacto en el sistema.
         
         Lee automáticamente:
-        - Últimas 10 líneas de health_events.jsonl
-        - Últimas 5 propuestas de proposals.jsonl (intervenciones manuales)
+        - Últimas 10 líneas de health_events.jsonl (eventos de salud)
+        - Últimas 10 líneas de action_history.jsonl (acciones del sistema)
+        - Últimas 10 propuestas de proposals.jsonl (intervenciones manuales del usuario)
         - Estado actual de quarantine.jsonl
-        - Métricas de current_state.json
+        - Métricas de current_state.json (Win Rate, Drawdown, etc)
         
-        Retorna: Dict con contexto formateado para el LLM
+        ANÁLISIS INCLUIDO:
+        1. Separa cambios USER (CLI/manual) vs AUTO (sistema automático)
+        2. Verifica simulation_mode para no reportar errores de conexión
+        3. Calcula impacto: compara métricas antes/después de intervenciones
+        4. Contexto para el LLM: "El usuario bajó el umbral a 0.65 para..."
+        
+        Retorna: Dict rico con contexto para análisis inteligente del LLM
         """
         
-        logger.info("🔍 Construyendo contexto de diagnóstico...")
+        logger.info("🔍 Construyendo contexto de diagnóstico enriquecido...")
         
         # PASO 1: Últimos eventos de salud
         health_events = self._get_recent_health_events(10)
         
-        # PASO 2: Últimas propuestas aplicadas (intervenciones manuales)
-        recent_proposals = self._get_recent_proposals(5)
+        # PASO 2: Últimas acciones del historial (AUTO + USER)
+        action_history = self._get_recent_actions(10)
         
-        # PASO 3: Parámetros en cuarentena
+        # PASO 3: Últimas propuestas (intervenciones manuales)
+        recent_proposals = self._get_recent_proposals(10)
+        
+        # PASO 4: Parámetros en cuarentena
         quarantined = self.quarantine_manager.get_all_quarantined()
         
-        # PASO 4: Métricas actuales
+        # PASO 5: Métricas actuales
         metrics = self._get_current_metrics()
         
-        # PASO 5: Estadísticas de salud
+        # PASO 6: Estadísticas de salud
         health_stats = self.health_monitor.get_statistics()
+        
+        # PASO 7: Analizar impacto de intervenciones
+        impact_analysis = self._analyze_intervention_impact(recent_proposals, metrics)
+        
+        # PASO 8: Separar acciones USER vs AUTO
+        user_actions, auto_actions = self._classify_actions(action_history)
+        
+        # PASO 9: Verificar simulation_mode
+        simulation_mode = metrics.get('development_flags', {}).get('debug_mode', False) or \
+                         metrics.get('system_info', {}).get('mode', '').lower() == 'test'
         
         context = {
             'timestamp': datetime.now().isoformat(),
+            'simulation_mode': simulation_mode,
+            
+            # EVENTOS Y ACCIONES
             'recent_events': health_events,
+            'action_history': action_history,
+            'user_actions': user_actions,
+            'auto_actions': auto_actions,
+            
+            # INTERVENCIONES MANUALES
             'recent_proposals': recent_proposals,
             'manual_interventions': len([p for p in recent_proposals if p.get('applied')]),
+            'manual_interventions_detail': [
+                {
+                    'component': p.get('component'),
+                    'parameter': p.get('parameter'),
+                    'old_value': p.get('old_value', 'desconocido'),
+                    'new_value': p.get('new_value'),
+                    'reason': p.get('reason'),
+                    'score': p.get('evaluation_score'),
+                    'created_by': p.get('created_by'),
+                    'timestamp': p.get('timestamp'),
+                }
+                for p in recent_proposals if p.get('applied')
+            ],
+            
+            # IMPACTO Y ANÁLISIS
+            'impact_analysis': impact_analysis,
+            
+            # SALUD DEL SISTEMA
             'quarantined_parameters': quarantined,
             'current_metrics': metrics,
             'health_statistics': health_stats,
-            'system_status': self.health_monitor.current_health_level.value
+            'system_status': self.health_monitor.current_health_level.value,
+            
+            # CONTEXTO EXPLICATIVO PARA EL LLM
+            'system_context': self._build_system_context(
+                metrics, recent_proposals, user_actions, impact_analysis
+            )
         }
         
-        logger.info("✅ Contexto de diagnóstico construido (incluye propuestas manuales)")
+        logger.info("✅ Contexto enriquecido construido (user/auto/impact/proposals)")
         
         return context
     
@@ -195,6 +247,132 @@ class LLMAssistant:
             logger.warning(f"⚠️  Error leyendo propuestas: {e}")
         
         return proposals
+    
+    def _get_recent_actions(self, count: int = 10) -> List[Dict]:
+        """Obtener últimas N acciones del historial (USER + AUTO)"""
+        
+        actions = []
+        history_file = self.memory_path / "action_history.jsonl"
+        
+        try:
+            if history_file.exists():
+                with open(history_file, 'r') as f:
+                    all_actions = [json.loads(line) for line in f if line.strip()]
+                
+                # Obtener las últimas N acciones
+                recent = all_actions[-count:] if len(all_actions) > 0 else []
+                
+                for action in recent:
+                    agent = action.get('agent', 'UNKNOWN')
+                    actions.append({
+                        'timestamp': action.get('timestamp', ''),
+                        'agent': agent,
+                        'is_user': agent == 'CLI' or 'User' in agent,
+                        'component': action.get('component', ''),
+                        'action': action.get('action', ''),
+                        'status': action.get('status', ''),
+                        'details': action.get('details', {}),
+                    })
+                
+                logger.info(f"✅ Recuperadas {len(actions)} acciones recientes del historial")
+        
+        except Exception as e:
+            logger.warning(f"⚠️  Error leyendo action_history: {e}")
+        
+        return actions
+    
+    def _classify_actions(self, actions: List[Dict]) -> tuple:
+        """Separar acciones USER vs AUTO"""
+        
+        user_actions = []
+        auto_actions = []
+        
+        for action in actions:
+            if action.get('is_user'):
+                user_actions.append(action)
+            else:
+                auto_actions.append(action)
+        
+        return user_actions, auto_actions
+    
+    def _analyze_intervention_impact(self, proposals: List[Dict], metrics: Dict) -> Dict:
+        """Analizar impacto de intervenciones manuales en las métricas"""
+        
+        impact = {
+            'total_interventions': len([p for p in proposals if p.get('applied')]),
+            'latest_intervention': None,
+            'impact_summary': '',
+            'win_rate_current': metrics.get('trading_metrics', {}).get('win_rate', 0),
+            'drawdown_current': metrics.get('trading_metrics', {}).get('current_drawdown', 0),
+        }
+        
+        # Encontrar la intervención más reciente
+        applied_proposals = [p for p in proposals if p.get('applied')]
+        if applied_proposals:
+            latest = applied_proposals[-1]
+            impact['latest_intervention'] = {
+                'component': latest.get('component'),
+                'parameter': latest.get('parameter'),
+                'new_value': latest.get('new_value'),
+                'reason': latest.get('reason'),
+                'timestamp': latest.get('timestamp'),
+            }
+            
+            # Resumen de impacto
+            impact['impact_summary'] = (
+                f"Última intervención: {latest.get('parameter')} = {latest.get('new_value')} "
+                f"(Razón: {latest.get('reason')}). "
+                f"Win Rate actual: {impact['win_rate_current']*100:.1f}%, "
+                f"Drawdown: {impact['drawdown_current']*100:.1f}%"
+            )
+        
+        return impact
+    
+    def _build_system_context(self, metrics: Dict, proposals: List[Dict], 
+                             user_actions: List[Dict], impact: Dict) -> str:
+        """Construir descripción textual del sistema para el LLM"""
+        
+        win_rate = metrics.get('trading_metrics', {}).get('win_rate', 0)
+        drawdown = metrics.get('trading_metrics', {}).get('current_drawdown', 0)
+        
+        context_text = f"""
+# CONTEXTO DEL SISTEMA PARA ANÁLISIS
+
+## Estado General
+- Win Rate Actual: {win_rate*100:.1f}%
+- Drawdown Actual: {drawdown*100:.1f}%
+- Modo Simulación: {'SÍ (No reportar errores de conexión)' if metrics.get('development_flags', {}).get('debug_mode') else 'NO'}
+
+## Intervenciones Manuales Realizadas por el Usuario (Václav)
+"""
+        
+        applied_proposals = [p for p in proposals if p.get('applied')]
+        if applied_proposals:
+            for i, prop in enumerate(applied_proposals[-3:], 1):  # Últimas 3
+                context_text += f"""
+{i}. {prop.get('component', '?')}.{prop.get('parameter', '?')} = {prop.get('new_value', '?')}
+   - Razón: {prop.get('reason', 'N/A')}
+   - Timestamp: {prop.get('timestamp', 'N/A')}
+   - Score: {prop.get('evaluation_score', 'N/A')}
+"""
+        else:
+            context_text += "\n- Sin intervenciones manuales en el historial reciente"
+        
+        context_text += f"""
+
+## Cambios Automáticos Recientes
+"""
+        
+        if user_actions:
+            for i, action in enumerate(user_actions[-2:], 1):  # Últimas 2 del usuario
+                details = action.get('details', {})
+                context_text += f"""
+{i}. [USER] {action.get('component', '?')} - {action.get('action', '?')}
+   - Status: {action.get('status', '?')}
+   - Detalles: {details.get('justification', 'N/A')}
+"""
+        
+        return context_text
     
     def analyze_and_propose(self) -> Dict:
         """
@@ -310,67 +488,73 @@ CONTEXTO DEL SISTEMA:
         3. Verifica si está en SIMULATION_MODE
         4. Presenta parámetros en riesgo en tabla
         5. Sugiere comandos copy-paste para acciones
+        6. Si detailed=True, llama al LLM con contexto enriquecido para análisis
         
         Argumentos:
-            detailed: Si True, incluye análisis profundo
+            detailed: Si True, incluye análisis profundo del LLM
         
         Retorna:
-            Dict con análisis completo incluyendo intervenciones manuales
+            Dict con análisis completo incluyendo intervenciones manuales e impacto
         """
         
         logger.info("🔍 Iniciando diagnóstico profundo del sistema...")
         
         try:
-            # Contexto básico (incluye propuestas ahora)
+            # Contexto ENRIQUECIDO (incluye propuestas, acciones, impacto)
             context = self.get_diagnose_context()
             
             # Verificar si está en SIMULATION_MODE
-            simulation_mode = context.get('current_metrics', {}).get('SIMULATION_MODE', False)
+            simulation_mode = context.get('simulation_mode', False)
             
-            # Extraer información clave sin procesamiento pesado
+            # Extraer información clave
             health_events = context.get('recent_events', [])
             quarantined_params = context.get('quarantined_parameters', [])
             metrics = context.get('current_metrics', {})
             recent_proposals = context.get('recent_proposals', [])
             manual_interventions = context.get('manual_interventions', 0)
+            user_actions = context.get('user_actions', [])
+            impact_analysis = context.get('impact_analysis', {})
+            system_context = context.get('system_context', '')
             
-            # Construir diagnóstico simple y rápido
+            # Construir diagnóstico rápido
             diagnosis_text = f"""
-# DIAGNÓSTICO RÁPIDO DEL SISTEMA AIPHA
+# DIAGNÓSTICO DEL SISTEMA AIPHA
 
 ## 📊 Estado General
 - Últimos eventos: {len(health_events)} registrados
 - Parámetros en cuarentena: {len(quarantined_params) if isinstance(quarantined_params, (list, dict)) else 0}
 - Modo simulación: {'🟢 Activo' if simulation_mode else '🔴 Desactivo'}
-- Intervenciones manuales recientes: {manual_interventions}
+- Intervenciones manuales: {manual_interventions}
 
-## 📝 Intervenciones Manuales Detectadas
+## 📝 Intervenciones Manuales del Usuario
 """
             
             # Agregar información sobre propuestas aplicadas
-            if recent_proposals:
-                for prop in recent_proposals:
-                    if prop.get('applied'):
-                        score_val = prop.get('evaluation_score', 'N/A')
-                        score_str = f"{score_val:.2f}" if isinstance(score_val, (int, float)) else str(score_val)
-                        diagnosis_text += f"""
-- [{prop.get('status', 'UNKNOWN')}] {prop.get('component', '?')}.{prop.get('parameter', '?')} = {prop.get('new_value', '?')}
-  └─ ID: {prop.get('proposal_id', '?')}
-  └─ Score: {score_str}
-  └─ Razón: {prop.get('reason', 'N/A')}
+            manual_details = context.get('manual_interventions_detail', [])
+            if manual_details:
+                for i, prop in enumerate(manual_details, 1):
+                    score_val = prop.get('score', 'N/A')
+                    score_str = f"{score_val:.2f}" if isinstance(score_val, (int, float)) else str(score_val)
+                    diagnosis_text += f"""
+{i}. {prop.get('component', '?')}.{prop.get('parameter', '?')} → {prop.get('new_value', '?')}
+   • Razón: {prop.get('reason', 'N/A')}
+   • Score: {score_str}
+   • Creado por: {prop.get('created_by', 'unknown')}
+   • Timestamp: {prop.get('timestamp', 'N/A')}
 """
             else:
                 diagnosis_text += "\n- Sin intervenciones manuales en el historial"
             
-            diagnosis_text += """
+            # Análisis de impacto
+            diagnosis_text += f"""
 
-## 📈 Métricas Clave
-"""
-            diagnosis_text += f"""- Latencia detectada: {metrics.get('latency_ms', 'N/A')} ms
-- Drawdown actual: {metrics.get('drawdown', 'N/A')}
-- Tasa de error: {metrics.get('error_rate', 'N/A')}
+## � Impacto en Métricas
+- Total de intervenciones: {impact_analysis.get('total_interventions', 0)}
+- Win Rate actual: {impact_analysis.get('win_rate_current', 0)*100:.1f}%
+- Drawdown actual: {impact_analysis.get('drawdown_current', 0)*100:.1f}%
+{impact_analysis.get('impact_summary', '')}
 
-## ⚠️  Advertencias Recientes
+## ⚠️  Últimos Eventos
 """
             
             # Agregar eventos recientes
@@ -380,22 +564,75 @@ CONTEXTO DEL SISTEMA:
                     message = event.get('message', '')
                     diagnosis_text += f"\n{i}. [{severity}] {message}"
             
-            # Resultado rápido sin LLM para diagnóstico simple
+            # Preparar resultado base
             result = {
                 'diagnosis': diagnosis_text,
                 'risk_parameters': [],
                 'evidence': health_events[-5:] if health_events else [],
                 'recent_proposals': recent_proposals,
                 'manual_interventions': manual_interventions,
+                'manual_interventions_detail': manual_details,
                 'simulation_mode': simulation_mode,
                 'suggested_commands': [],
                 'timestamp': datetime.now().isoformat(),
-                'formatted_diagnosis': self._format_diagnosis_output(
-                    diagnosis_text, [], [], simulation_mode
-                )
+                'impact_analysis': impact_analysis,
+                'user_actions': user_actions,
             }
             
-            logger.info("✅ Diagnóstico completado (incluye intervenciones manuales)")
+            # SI DETAILED=TRUE: Usar LLM para análisis profundo
+            if detailed:
+                logger.info("📤 Llamando al Super Cerebro para análisis detallado...")
+                
+                # Preparar prompt enriquecido
+                # Nota: Convertir user_actions a lista de strings para evitar problemas de serialización
+                user_actions_text = "\n".join([
+                    f"- [{action.get('timestamp', 'N/A')}] {action.get('agent', '?')} "
+                    f"en {action.get('component', '?')}: {action.get('action', '?')}"
+                    for action in user_actions
+                ]) if user_actions else "- Sin acciones del usuario"
+                
+                prompt = f"""Analiza el siguiente contexto del sistema AIPHA y proporciona insights sobre:
+
+1. ¿Qué hizo el usuario (Václav) y por qué?
+2. ¿Está justificado ese cambio dado el Win Rate actual?
+3. ¿Qué impacto tendría este cambio?
+4. ¿Qué deberías monitorear ahora?
+
+CONTEXTO DEL SISTEMA:
+{system_context}
+
+HISTORIAL DE ACCIONES DEL USUARIO:
+{user_actions_text}
+
+MÉTRICAS ACTUALES:
+- Win Rate: {impact_analysis.get('win_rate_current', 0)*100:.1f}%
+- Drawdown: {impact_analysis.get('drawdown_current', 0)*100:.1f}%
+- Total Trades: {metrics.get('trading_metrics', {}).get('total_trades', 'N/A')}
+
+Por favor, responde como un experto en trading systems analizando tanto el diagnóstico técnico como
+el reasoning del usuario para sus intervenciones manuales."""
+                
+                try:
+                    llm_response = self.llm.generate(
+                        prompt=prompt,
+                        system_prompt=AIPHA_SYSTEM_PROMPT,
+                        temperature=0.5,
+                        max_tokens=2048
+                    )
+                    
+                    result['llm_analysis'] = llm_response
+                    logger.info("✅ Análisis del LLM completado")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️  Error en análisis del LLM: {e}")
+                    result['llm_analysis'] = f"Error llamando al LLM: {e}"
+            
+            # Formato para presentación
+            result['formatted_diagnosis'] = self._format_diagnosis_output(
+                diagnosis_text, user_actions, manual_details, simulation_mode
+            )
+            
+            logger.info("✅ Diagnóstico completado (contexto enriquecido)")
             return result
         
         except Exception as e:
