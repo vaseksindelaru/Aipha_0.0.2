@@ -86,6 +86,7 @@ class LLMAssistant:
         
         Lee automáticamente:
         - Últimas 10 líneas de health_events.jsonl
+        - Últimas 5 propuestas de proposals.jsonl (intervenciones manuales)
         - Estado actual de quarantine.jsonl
         - Métricas de current_state.json
         
@@ -97,25 +98,30 @@ class LLMAssistant:
         # PASO 1: Últimos eventos de salud
         health_events = self._get_recent_health_events(10)
         
-        # PASO 2: Parámetros en cuarentena
+        # PASO 2: Últimas propuestas aplicadas (intervenciones manuales)
+        recent_proposals = self._get_recent_proposals(5)
+        
+        # PASO 3: Parámetros en cuarentena
         quarantined = self.quarantine_manager.get_all_quarantined()
         
-        # PASO 3: Métricas actuales
+        # PASO 4: Métricas actuales
         metrics = self._get_current_metrics()
         
-        # PASO 4: Estadísticas de salud
+        # PASO 5: Estadísticas de salud
         health_stats = self.health_monitor.get_statistics()
         
         context = {
             'timestamp': datetime.now().isoformat(),
             'recent_events': health_events,
+            'recent_proposals': recent_proposals,
+            'manual_interventions': len([p for p in recent_proposals if p.get('applied')]),
             'quarantined_parameters': quarantined,
             'current_metrics': metrics,
             'health_statistics': health_stats,
             'system_status': self.health_monitor.current_health_level.value
         }
         
-        logger.info("✅ Contexto de diagnóstico construido")
+        logger.info("✅ Contexto de diagnóstico construido (incluye propuestas manuales)")
         
         return context
     
@@ -154,6 +160,41 @@ class LLMAssistant:
             logger.error(f"Error leyendo métricas: {e}")
         
         return metrics
+    
+    def _get_recent_proposals(self, count: int = 5) -> List[Dict]:
+        """Obtener últimas N propuestas aplicadas (intervenciones manuales)"""
+        
+        proposals = []
+        proposals_file = self.memory_path / "proposals.jsonl"
+        
+        try:
+            if proposals_file.exists():
+                with open(proposals_file, 'r') as f:
+                    all_proposals = [json.loads(line) for line in f if line.strip()]
+                
+                # Obtener las últimas N propuestas
+                recent = all_proposals[-count:] if len(all_proposals) > 0 else []
+                
+                for prop in recent:
+                    proposals.append({
+                        'proposal_id': prop.get('proposal_id', 'UNKNOWN'),
+                        'timestamp': prop.get('timestamp', ''),
+                        'component': prop.get('component', ''),
+                        'parameter': prop.get('parameter', ''),
+                        'new_value': prop.get('new_value', ''),
+                        'reason': prop.get('reason', ''),
+                        'status': prop.get('status', ''),
+                        'evaluation_score': prop.get('evaluation_score'),
+                        'applied': prop.get('applied', False),
+                        'created_by': prop.get('created_by', 'unknown'),
+                    })
+                
+                logger.info(f"✅ Recuperadas {len(proposals)} propuestas recientes de {proposals_file}")
+        
+        except Exception as e:
+            logger.warning(f"⚠️  Error leyendo propuestas: {e}")
+        
+        return proposals
     
     def analyze_and_propose(self) -> Dict:
         """
@@ -265,21 +306,22 @@ CONTEXTO DEL SISTEMA:
         
         MEJORAS IMPLEMENTADAS:
         1. Extrae evidencia exacta de health_events.jsonl
-        2. Verifica si está en SIMULATION_MODE
-        3. Presenta parámetros en riesgo en tabla
-        4. Sugiere comandos copy-paste para acciones
+        2. Incluye propuestas manuales aplicadas (intervenciones)
+        3. Verifica si está en SIMULATION_MODE
+        4. Presenta parámetros en riesgo en tabla
+        5. Sugiere comandos copy-paste para acciones
         
         Argumentos:
             detailed: Si True, incluye análisis profundo
         
         Retorna:
-            Dict con análisis completo
+            Dict con análisis completo incluyendo intervenciones manuales
         """
         
         logger.info("🔍 Iniciando diagnóstico profundo del sistema...")
         
         try:
-            # Contexto básico
+            # Contexto básico (incluye propuestas ahora)
             context = self.get_diagnose_context()
             
             # Verificar si está en SIMULATION_MODE
@@ -289,6 +331,8 @@ CONTEXTO DEL SISTEMA:
             health_events = context.get('recent_events', [])
             quarantined_params = context.get('quarantined_parameters', [])
             metrics = context.get('current_metrics', {})
+            recent_proposals = context.get('recent_proposals', [])
+            manual_interventions = context.get('manual_interventions', 0)
             
             # Construir diagnóstico simple y rápido
             diagnosis_text = f"""
@@ -298,13 +342,35 @@ CONTEXTO DEL SISTEMA:
 - Últimos eventos: {len(health_events)} registrados
 - Parámetros en cuarentena: {len(quarantined_params) if isinstance(quarantined_params, (list, dict)) else 0}
 - Modo simulación: {'🟢 Activo' if simulation_mode else '🔴 Desactivo'}
+- Intervenciones manuales recientes: {manual_interventions}
+
+## 📝 Intervenciones Manuales Detectadas
+"""
+            
+            # Agregar información sobre propuestas aplicadas
+            if recent_proposals:
+                for prop in recent_proposals:
+                    if prop.get('applied'):
+                        score_val = prop.get('evaluation_score', 'N/A')
+                        score_str = f"{score_val:.2f}" if isinstance(score_val, (int, float)) else str(score_val)
+                        diagnosis_text += f"""
+- [{prop.get('status', 'UNKNOWN')}] {prop.get('component', '?')}.{prop.get('parameter', '?')} = {prop.get('new_value', '?')}
+  └─ ID: {prop.get('proposal_id', '?')}
+  └─ Score: {score_str}
+  └─ Razón: {prop.get('reason', 'N/A')}
+"""
+            else:
+                diagnosis_text += "\n- Sin intervenciones manuales en el historial"
+            
+            diagnosis_text += """
 
 ## 📈 Métricas Clave
-- Latencia detectada: {metrics.get('latency_ms', 'N/A')} ms
+"""
+            diagnosis_text += f"""- Latencia detectada: {metrics.get('latency_ms', 'N/A')} ms
 - Drawdown actual: {metrics.get('drawdown', 'N/A')}
 - Tasa de error: {metrics.get('error_rate', 'N/A')}
 
-## ⚠️  Advertencias
+## ⚠️  Advertencias Recientes
 """
             
             # Agregar eventos recientes
@@ -319,6 +385,8 @@ CONTEXTO DEL SISTEMA:
                 'diagnosis': diagnosis_text,
                 'risk_parameters': [],
                 'evidence': health_events[-5:] if health_events else [],
+                'recent_proposals': recent_proposals,
+                'manual_interventions': manual_interventions,
                 'simulation_mode': simulation_mode,
                 'suggested_commands': [],
                 'timestamp': datetime.now().isoformat(),
@@ -327,7 +395,7 @@ CONTEXTO DEL SISTEMA:
                 )
             }
             
-            logger.info("✅ Diagnóstico completado")
+            logger.info("✅ Diagnóstico completado (incluye intervenciones manuales)")
             return result
         
         except Exception as e:

@@ -1236,7 +1236,7 @@ def brain_test_connection():
 @brain.command(name="diagnose")
 @click.option('--detailed', is_flag=True, default=False, help='Mostrar diagnóstico detallado con análisis profundo')
 def brain_diagnose(detailed):
-    """Diagnóstico profundo del sistema usando Qwen 2.5 Coder 32B con evidencia citada."""
+    """Diagnóstico profundo del sistema usando Qwen 2.5 Coder 32B con evidencia y intervenciones manuales."""
     api_key = _check_api_key()
     if not api_key:
         sys.exit(1)
@@ -1248,7 +1248,7 @@ def brain_diagnose(detailed):
         assistant = LLMAssistant(memory_path=AIPHA_ROOT / "memory")
         click.secho("  ✅ Super Cerebro inicializado", fg='green')
         
-        click.secho("  ⏳ Analizando sistema (extrayendo evidencia)...", fg='yellow')
+        click.secho("  ⏳ Analizando sistema (extrayendo evidencia e intervenciones)...", fg='yellow')
         
         # Obtener diagnóstico profundo con estructura
         diagnosis_result = assistant.diagnose_system(detailed=detailed)
@@ -1268,6 +1268,39 @@ def brain_diagnose(detailed):
                     border_style="cyan",
                     title="🧠 Diagnóstico Profundo del Sistema"
                 ))
+                
+                # Mostrar tabla de intervenciones manuales si existen
+                recent_proposals = diagnosis_result.get('recent_proposals', [])
+                manual_interventions = diagnosis_result.get('manual_interventions', 0)
+                
+                if manual_interventions > 0 and recent_proposals:
+                    click.echo("")
+                    console.print("[bold yellow]📝 INTERVENCIONES MANUALES DETECTADAS:[/bold yellow]")
+                    
+                    table = Table(show_header=True, header_style="bold yellow")
+                    table.add_column("ID", style="cyan")
+                    table.add_column("Componente", style="magenta")
+                    table.add_column("Parámetro", style="yellow")
+                    table.add_column("Nuevo Valor", style="green")
+                    table.add_column("Score", style="blue")
+                    table.add_column("Estado", style="white")
+                    
+                    for prop in recent_proposals:
+                        if prop.get('applied'):
+                            score = f"{prop.get('evaluation_score', 'N/A'):.2f}" if prop.get('evaluation_score') else "N/A"
+                            status_icon = "✅" if prop.get('status') == 'APPLIED' else "⏳"
+                            table.add_row(
+                                prop.get('proposal_id', 'UNKNOWN')[:16],
+                                prop.get('component', '?'),
+                                prop.get('parameter', '?'),
+                                str(prop.get('new_value', '?')),
+                                score,
+                                f"{status_icon} {prop.get('status', 'UNKNOWN')}"
+                            )
+                    
+                    console.print(table)
+                    console.print(f"\n💡 El Super Cerebro detectó {manual_interventions} intervención(es) manual(es).")
+                    console.print("   Esto ayuda a evaluar si los cambios manuales están mejorando el sistema.")
                 
                 # Mostrar tabla de parámetros en riesgo si existen
                 risk_params = diagnosis_result.get('risk_parameters', [])
@@ -1310,7 +1343,10 @@ def brain_diagnose(detailed):
                     click.echo("")
                     console.print("[bold cyan]📋 EVIDENCIA CITADA:[/bold cyan]")
                     for ev in evidence[:5]:  # Mostrar máx 5
-                        console.print(f"  [yellow]Línea {ev.get('line_number')}[/yellow]: {ev.get('message')}")
+                        if isinstance(ev, dict):
+                            console.print(f"  [yellow]Línea {ev.get('line_number', 'N/A')}[/yellow]: {ev.get('message', 'N/A')}")
+                        else:
+                            console.print(f"  [yellow]{str(ev)[:50]}[/yellow]")
             else:
                 click.echo(diagnosis_result.get('formatted_diagnosis', diagnosis_result.get('diagnosis', '')))
         else:
