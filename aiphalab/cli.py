@@ -13,6 +13,7 @@ import sys
 import time
 import json
 import os
+import signal
 from pathlib import Path
 import textwrap
 
@@ -816,6 +817,21 @@ def proposal_create(component, parameter, new_value, reason):
         with open(proposals_file, "a") as f:
             f.write(json.dumps(proposal_data) + "\n")
         
+        # Notificar al Orquestador (SIGUSR1) para procesamiento inmediato
+        try:
+            pid_file = AIPHA_ROOT / "memory" / "orchestrator.pid"
+            if pid_file.exists():
+                with open(pid_file, "r") as f:
+                    pid = int(f.read().strip())
+                os.kill(pid, signal.SIGUSR1)
+                click.secho(f"⚡ Señal enviada al Orquestador (PID {pid}) para evaluación inmediata.", fg='yellow')
+            else:
+                click.secho("ℹ️  Orquestador no detectado (sin archivo PID). La propuesta quedará en cola.", fg='dim')
+        except ProcessLookupError:
+            click.secho("⚠️  El proceso del Orquestador no está corriendo actualmente.", fg='yellow')
+        except Exception as e:
+            click.secho(f"⚠️  No se pudo enviar señal al Orquestador: {e}", fg='yellow')
+
         # Mostrar confirmación
         click.secho("\n✅ PROPUESTA CREADA", fg='green', bold=True)
         click.echo(f"  ID: {proposal_id}")

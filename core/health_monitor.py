@@ -166,6 +166,7 @@ class HealthMonitor:
         
         logger.info("▶️ Event processor thread iniciado")
         
+        import queue
         while True:
             try:
                 # Obtener evento (blocking)
@@ -174,6 +175,9 @@ class HealthMonitor:
                 # Procesar
                 self._process_event(event)
                 
+            except queue.Empty:
+                # Es normal que la cola esté vacía, no es un error
+                continue
             except Exception as e:
                 logger.error(f"❌ Error en event processor: {e}")
                 time.sleep(0.1)
@@ -241,35 +245,49 @@ class HealthMonitor:
         }
     
     def get_recent_events(self, count: int = 10) -> List[Dict]:
-        """Obtener últimos N eventos"""
+        """Obtener últimos N eventos con robustez"""
         
         events = []
         
         try:
-            with open(self.health_log_file, 'r') as f:
+            if not self.health_log_file.exists():
+                return []
+                
+            with open(self.health_log_file, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-                for line in lines[-count:]:
-                    if line.strip():
+                valid_lines = [l.strip() for l in lines if l.strip()]
+                for line in valid_lines[-count:]:
+                    try:
                         events.append(json.loads(line))
-        except FileNotFoundError:
-            pass
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            logger.debug(f"Error discreto leyendo health events: {e}")
         
         return events
     
     def get_critical_events(self) -> List[Dict]:
-        """Obtener eventos críticos"""
+        """Obtener eventos críticos con robustez"""
         
         events = []
         
         try:
-            with open(self.health_log_file, 'r') as f:
+            if not self.health_log_file.exists():
+                return []
+                
+            with open(self.health_log_file, 'r', encoding='utf-8') as f:
                 for line in f:
-                    if line.strip():
-                        event = json.loads(line)
+                    clean_line = line.strip()
+                    if not clean_line:
+                        continue
+                    try:
+                        event = json.loads(clean_line)
                         if event.get('level') == HealthLevel.CRITICAL.value:
                             events.append(event)
-        except FileNotFoundError:
-            pass
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            logger.debug(f"Error discreto leyendo eventos críticos: {e}")
         
         return events
     
@@ -285,19 +303,27 @@ class HealthMonitor:
         }
     
     def _count_by_level(self) -> Dict[str, int]:
-        """Contar eventos por nivel"""
+        """Contar eventos por nivel con robustez"""
         
         counts = {level.value: 0 for level in HealthLevel}
         
         try:
-            with open(self.health_log_file, 'r') as f:
+            if not self.health_log_file.exists():
+                return counts
+                
+            with open(self.health_log_file, 'r', encoding='utf-8') as f:
                 for line in f:
-                    if line.strip():
-                        event = json.loads(line)
+                    clean_line = line.strip()
+                    if not clean_line:
+                        continue
+                    try:
+                        event = json.loads(clean_line)
                         level = event.get('level', 'unknown')
                         counts[level] = counts.get(level, 0) + 1
-        except FileNotFoundError:
-            pass
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            logger.debug(f"Error discreto contando niveles: {e}")
         
         return counts
 

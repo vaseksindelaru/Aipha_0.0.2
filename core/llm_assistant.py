@@ -178,106 +178,132 @@ class LLMAssistant:
         return context
     
     def _get_recent_health_events(self, count: int = 10) -> List[Dict]:
-        """Obtener últimos N eventos de salud"""
+        """Obtener últimos N eventos de salud con robustez ante JSON malformado"""
         
         events = []
         events_file = self.memory_path / "health_events.jsonl"
         
+        if not events_file.exists():
+            return []
+            
         try:
-            if events_file.exists():
-                with open(events_file, 'r') as f:
-                    lines = f.readlines()
-                    for line in lines[-count:]:
-                        if line.strip():
-                            try:
-                                events.append(json.loads(line))
-                            except json.JSONDecodeError:
-                                pass
+            with open(events_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                # Procesar solo las últimas N líneas con contenido
+                valid_lines = [l.strip() for l in lines if l.strip()]
+                for line in valid_lines[-count:]:
+                    try:
+                        events.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        # Ignorar silenciosamente líneas malformadas
+                        continue
         except Exception as e:
-            logger.error(f"Error leyendo health events: {e}")
+            logger.debug(f"Error discreto leyendo health events: {e}")
         
         return events
     
     def _get_current_metrics(self) -> Dict:
-        """Obtener métricas actuales del sistema"""
+        """Obtener métricas actuales del sistema con robustez"""
         
         metrics = {}
         metrics_file = self.memory_path / "current_state.json"
         
+        if not metrics_file.exists():
+            return {}
+            
         try:
-            if metrics_file.exists():
-                with open(metrics_file, 'r') as f:
-                    metrics = json.load(f)
-        except Exception as e:
-            logger.error(f"Error leyendo métricas: {e}")
+            with open(metrics_file, 'r', encoding='utf-8') as f:
+                metrics = json.load(f)
+        except (json.JSONDecodeError, Exception) as e:
+            logger.debug(f"Error discreto leyendo métricas: {e}")
         
         return metrics
     
     def _get_recent_proposals(self, count: int = 5) -> List[Dict]:
-        """Obtener últimas N propuestas aplicadas (intervenciones manuales)"""
+        """Obtener últimas N propuestas aplicadas con robustez"""
         
         proposals = []
         proposals_file = self.memory_path / "proposals.jsonl"
         
+        if not proposals_file.exists():
+            return []
+            
         try:
-            if proposals_file.exists():
-                with open(proposals_file, 'r') as f:
-                    all_proposals = [json.loads(line) for line in f if line.strip()]
-                
-                # Obtener las últimas N propuestas
-                recent = all_proposals[-count:] if len(all_proposals) > 0 else []
-                
-                for prop in recent:
-                    proposals.append({
-                        'proposal_id': prop.get('proposal_id', 'UNKNOWN'),
-                        'timestamp': prop.get('timestamp', ''),
-                        'component': prop.get('component', ''),
-                        'parameter': prop.get('parameter', ''),
-                        'new_value': prop.get('new_value', ''),
-                        'reason': prop.get('reason', ''),
-                        'status': prop.get('status', ''),
-                        'evaluation_score': prop.get('evaluation_score'),
-                        'applied': prop.get('applied', False),
-                        'created_by': prop.get('created_by', 'unknown'),
-                    })
-                
-                logger.info(f"✅ Recuperadas {len(proposals)} propuestas recientes de {proposals_file}")
+            all_proposals = []
+            with open(proposals_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    clean_line = line.strip()
+                    if not clean_line:
+                        continue
+                    try:
+                        all_proposals.append(json.loads(clean_line))
+                    except json.JSONDecodeError:
+                        continue
+            
+            # Obtener las últimas N propuestas
+            recent = all_proposals[-count:] if len(all_proposals) > 0 else []
+            
+            for prop in recent:
+                proposals.append({
+                    'proposal_id': prop.get('proposal_id', 'UNKNOWN'),
+                    'timestamp': prop.get('timestamp', ''),
+                    'component': prop.get('component', ''),
+                    'parameter': prop.get('parameter', ''),
+                    'new_value': prop.get('new_value', ''),
+                    'reason': prop.get('reason', ''),
+                    'status': prop.get('status', ''),
+                    'evaluation_score': prop.get('evaluation_score'),
+                    'applied': prop.get('applied', False),
+                    'created_by': prop.get('created_by', 'unknown'),
+                })
+            
+            logger.info(f"✅ Recuperadas {len(proposals)} propuestas recientes de {proposals_file}")
         
         except Exception as e:
-            logger.warning(f"⚠️  Error leyendo propuestas: {e}")
+            logger.debug(f"Error discreto leyendo propuestas: {e}")
         
         return proposals
     
     def _get_recent_actions(self, count: int = 10) -> List[Dict]:
-        """Obtener últimas N acciones del historial (USER + AUTO)"""
+        """Obtener últimas N acciones del historial con robustez"""
         
         actions = []
         history_file = self.memory_path / "action_history.jsonl"
         
+        if not history_file.exists():
+            return []
+            
         try:
-            if history_file.exists():
-                with open(history_file, 'r') as f:
-                    all_actions = [json.loads(line) for line in f if line.strip()]
-                
-                # Obtener las últimas N acciones
-                recent = all_actions[-count:] if len(all_actions) > 0 else []
-                
-                for action in recent:
-                    agent = action.get('agent', 'UNKNOWN')
-                    actions.append({
-                        'timestamp': action.get('timestamp', ''),
-                        'agent': agent,
-                        'is_user': agent == 'CLI' or 'User' in agent,
-                        'component': action.get('component', ''),
-                        'action': action.get('action', ''),
-                        'status': action.get('status', ''),
-                        'details': action.get('details', {}),
-                    })
-                
-                logger.info(f"✅ Recuperadas {len(actions)} acciones recientes del historial")
+            all_actions = []
+            with open(history_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    clean_line = line.strip()
+                    if not clean_line:
+                        continue
+                    try:
+                        all_actions.append(json.loads(clean_line))
+                    except json.JSONDecodeError:
+                        continue
+            
+            # Obtener las últimas N acciones
+            recent = all_actions[-count:] if len(all_actions) > 0 else []
+            
+            for action in recent:
+                agent = action.get('agent', 'UNKNOWN')
+                actions.append({
+                    'timestamp': action.get('timestamp', ''),
+                    'agent': agent,
+                    'is_user': agent == 'CLI' or 'User' in agent,
+                    'component': action.get('component', ''),
+                    'action': action.get('action', ''),
+                    'status': action.get('status', ''),
+                    'details': action.get('details', {}),
+                })
+            
+            logger.info(f"✅ Recuperadas {len(actions)} acciones recientes del historial")
         
         except Exception as e:
-            logger.warning(f"⚠️  Error leyendo action_history: {e}")
+            logger.debug(f"Error discreto leyendo action_history: {e}")
         
         return actions
     
@@ -626,10 +652,28 @@ el reasoning del usuario para sus intervenciones manuales."""
                 except Exception as e:
                     logger.warning(f"⚠️  Error en análisis del LLM: {e}")
                     result['llm_analysis'] = f"Error llamando al LLM: {e}"
+
+            # Extraer parámetros en riesgo y comandos sugeridos
+            risk_params = self._extract_risk_parameters(context)
+            
+            # Comandos sugeridos (del LLM si hay detailed, o base)
+            suggested_cmds = []
+            if detailed and 'llm_analysis' in result:
+                suggested_cmds = self._extract_suggested_commands(result['llm_analysis'])
+            
+            # Si no hay comandos del LLM, podemos sugerir comandos base si hay riesgos
+            if not suggested_cmds and risk_params:
+                for risk in risk_params:
+                    if risk.get('status') == 'QUARANTINED':
+                        suggested_cmds.append(f"aipha quarantine release --parameter {risk.get('parameter')}")
+
+            # Actualizar resultado
+            result['risk_parameters'] = risk_params
+            result['suggested_commands'] = suggested_cmds
             
             # Formato para presentación
             result['formatted_diagnosis'] = self._format_diagnosis_output(
-                diagnosis_text, user_actions, manual_details, simulation_mode
+                diagnosis_text, risk_params, suggested_cmds, simulation_mode
             )
             
             logger.info("✅ Diagnóstico completado (contexto enriquecido)")

@@ -37,6 +37,7 @@ class OrchestrationState:
         self.should_interrupt = False
         self.interrupt_reason = None
         self.interrupt_timestamp = None
+        self.wake_up_event = threading.Event()  # Evento para despertar del sleep
 
 
 class CentralOrchestratorHardened:
@@ -56,11 +57,16 @@ class CentralOrchestratorHardened:
         # Managers
         from core.context_sentinel import ContextSentinel
         from core.execution_queue import ExecutionQueue
-        from oracle.oracle_manager import OracleManagerWithHealthCheck
+        
+        try:
+            from oracle.oracle_manager import OracleManagerWithHealthCheck
+            self.oracle_manager = OracleManagerWithHealthCheck()
+        except (ImportError, ModuleNotFoundError):
+            logger.warning("⚠️ OracleManagerWithHealthCheck no encontrado, usando Mock")
+            self.oracle_manager = MagicMock() if 'MagicMock' in globals() else type('Mock', (), {'health_check': lambda: True})()
         
         self.memory_manager = ContextSentinel()
         self.execution_queue = ExecutionQueue(max_workers=1)
-        self.oracle_manager = OracleManagerWithHealthCheck()
         
         # Registrar signal handlers
         signal.signal(signal.SIGUSR1, self._handle_user_signal)
@@ -81,6 +87,9 @@ class CentralOrchestratorHardened:
         """
         
         logger.info("⚡ SIGUSR1 recibido (Usuario)")
+        
+        # 1. Despertar al bucle principal si está durmiendo
+        self.state.wake_up_event.set()
         
         try:
             # NO usar self.state.cycle_lock aquí (puede causar deadlock)
@@ -265,6 +274,21 @@ class CentralOrchestratorHardened:
         else:
             logger.info("✅ No hay tareas pendientes")
     
+    def process_pending_requests(self):
+        """Wrapper público para procesar cola de usuario inmediatamente"""
+        self._handle_pending_requests()
+
+    def wait_for_next_cycle(self, timeout: float) -> bool:
+        """
+        Espera inteligente: duerme 'timeout' segundos, pero despierta
+        INMEDIATAMENTE si llega una señal de usuario.
+        Retorna: True si fue interrumpido (señal), False si terminó el tiempo.
+        """
+        interrupted = self.state.wake_up_event.wait(timeout=timeout)
+        if interrupted:
+            self.state.wake_up_event.clear()  # Resetear para la próxima
+        return interrupted
+
     async def run_improvement_cycle(
         self, 
         cycle_type: CycleType = CycleType.AUTO

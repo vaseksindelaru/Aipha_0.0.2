@@ -157,6 +157,66 @@ class ContextSentinel:
             "memory_keys": memory_keys
         }
 
+    def get_proposal(self, proposal_id: str) -> Optional[Any]:
+        """Recuperar una propuesta específica por ID con robustez"""
+        proposals_file = self.storage_root.parent / "memory" / "proposals.jsonl"
+        if not proposals_file.exists():
+            return None
+        
+        try:
+            with open(proposals_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    clean_line = line.strip()
+                    if not clean_line:
+                        continue
+                    try:
+                        data = json.loads(clean_line)
+                        if data.get('proposal_id') == proposal_id:
+                            # Mock object for compatibility
+                            class Proposal:
+                                def __init__(self, d):
+                                    self.id = d.get('proposal_id')
+                                    self.title = d.get('reason', 'Sin título')
+                                    self.target_component = d.get('component')
+                                    self.parameter = d.get('parameter')
+                                    self.new_value = d.get('new_value')
+                                    self.impact_justification = d.get('reason')
+                            return Proposal(data)
+                    except json.JSONDecodeError:
+                        continue
+            return None
+        except Exception as e:
+            logger.debug(f"Error discreto leyendo propuesta {proposal_id}: {e}")
+            return None
+
+    def get_last_approved_proposal(self) -> Optional[Any]:
+        """Obtener la última propuesta aprobada o pendiente de evaluación con robustez"""
+        proposals_file = self.storage_root.parent / "memory" / "proposals.jsonl"
+        if not proposals_file.exists():
+            return None
+        
+        try:
+            last_valid = None
+            with open(proposals_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    clean_line = line.strip()
+                    if not clean_line:
+                        continue
+                    try:
+                        data = json.loads(clean_line)
+                        # Consideramos válidas las que no han sido aplicadas aún
+                        if not data.get('applied', False):
+                            last_valid = data
+                    except json.JSONDecodeError:
+                        continue
+            
+            if last_valid:
+                return self.get_proposal(last_valid.get('proposal_id'))
+            return None
+        except Exception as e:
+            logger.debug(f"Error discreto buscando última propuesta: {e}")
+            return None
+
     def _load_state(self) -> Dict[str, Any]:
         """Cargar estado desde JSON"""
         try:
