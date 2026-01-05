@@ -322,7 +322,7 @@ class LLMAssistant:
         return user_actions, auto_actions
     
     def _analyze_intervention_impact(self, proposals: List[Dict], metrics: Dict) -> Dict:
-        """Analizar impacto de intervenciones manuales en las métricas"""
+        """Analizar impacto de intervenciones manuales en las métricas (Hito 5)"""
         
         impact = {
             'total_interventions': len([p for p in proposals if p.get('applied')]),
@@ -330,26 +330,40 @@ class LLMAssistant:
             'impact_summary': '',
             'win_rate_current': metrics.get('trading_metrics', {}).get('win_rate', 0),
             'drawdown_current': metrics.get('trading_metrics', {}).get('current_drawdown', 0),
+            'wr_delta': 0.0,
+            'dd_delta': 0.0
         }
         
-        # Encontrar la intervención más reciente
+        # Encontrar la intervención más reciente que tenga línea base
         applied_proposals = [p for p in proposals if p.get('applied')]
         if applied_proposals:
             latest = applied_proposals[-1]
+            baseline = latest.get('baseline_metrics', {})
+            
+            wr_before = baseline.get('win_rate', 0.0)
+            dd_before = baseline.get('drawdown', 0.0)
+            
+            impact['wr_delta'] = impact['win_rate_current'] - wr_before
+            impact['dd_delta'] = impact['drawdown_current'] - dd_before
+            
             impact['latest_intervention'] = {
                 'component': latest.get('component'),
                 'parameter': latest.get('parameter'),
                 'new_value': latest.get('new_value'),
                 'reason': latest.get('reason'),
                 'timestamp': latest.get('timestamp'),
+                'wr_before': wr_before,
+                'dd_before': dd_before
             }
             
-            # Resumen de impacto
+            # Resumen de impacto con Veredicto (Hito 5)
+            verdict = "POSITIVO ✅" if impact['wr_delta'] > 0 or impact['dd_delta'] < 0 else "NEUTRAL/NEGATIVO ⚠️"
             impact['impact_summary'] = (
+                f"Veredicto del Mercado: {verdict}\n"
                 f"Última intervención: {latest.get('parameter')} = {latest.get('new_value')} "
-                f"(Razón: {latest.get('reason')}). "
-                f"Win Rate actual: {impact['win_rate_current']*100:.1f}%, "
-                f"Drawdown: {impact['drawdown_current']*100:.1f}%"
+                f"(Razón: {latest.get('reason')}).\n"
+                f"Delta Win Rate: {impact['wr_delta']*100:+.1f}%, "
+                f"Delta Drawdown: {impact['dd_delta']*100:+.1f}%"
             )
         
         return impact

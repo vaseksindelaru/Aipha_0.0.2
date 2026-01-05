@@ -44,7 +44,7 @@ class ContextSentinel:
         Inicializar ContextSentinel.
         """
         if storage_root is None:
-            storage_root = Path.cwd() / "aipha_memory"
+            storage_root = Path.cwd() / "memory"
         
         self.storage_root = Path(storage_root)
         self.storage_root.mkdir(parents=True, exist_ok=True)
@@ -226,6 +226,42 @@ class ContextSentinel:
             return json.loads(content) if content.strip() else {}
         except json.JSONDecodeError:
             return {}
+
+    def update_proposal_status(self, proposal_id: str, status: str) -> bool:
+        """Actualizar el estado de una propuesta en proposals.jsonl"""
+        proposals_file = self.storage_root.parent / "memory" / "proposals.jsonl"
+        if not proposals_file.exists():
+            return False
+        
+        try:
+            proposals = []
+            updated = False
+            with open(proposals_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if not line.strip(): continue
+                    data = json.loads(line)
+                    if data.get('proposal_id') == proposal_id:
+                        data['status'] = status
+                        updated = True
+                    proposals.append(data)
+            
+            if updated:
+                with open(proposals_file, 'w', encoding='utf-8') as f:
+                    for p in proposals:
+                        f.write(json.dumps(p) + '\n')
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error actualizando estado de propuesta: {e}")
+            return False
+
+    def log_event(self, event_data: Dict[str, Any]) -> None:
+        """Wrapper de compatibilidad para add_action"""
+        self.add_action(
+            agent="System",
+            action_type=event_data.get('type', 'EVENT'),
+            details=event_data
+        )
 
 def create_sentinel(storage_path: Optional[str] = None) -> ContextSentinel:
     """Factory para crear instancia"""

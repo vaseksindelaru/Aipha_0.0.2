@@ -23,12 +23,8 @@ def setup():
 
 class TestChangeEvaluator:
     
-    def test_approves_proposal(self, setup):
-        """
-        Verifica que aprueba propuestas.
-        NOTA: En Fase 2, la lógica de evaluación está hardcodeada para aprobar
-        siempre con un score alto (basado en el caso de uso ATR).
-        """
+    def test_approves_proposal_with_metrics(self, setup):
+        """Verifica que aprueba propuestas con métricas."""
         sentinel, evaluator = setup
         
         proposal = ChangeProposal(
@@ -44,12 +40,37 @@ class TestChangeEvaluator:
             estimated_complexity="trivial"
         )
         
-        result = evaluator.evaluate(proposal)
+        metrics = {"win_rate": 0.30, "current_drawdown": 0.05}
+        result = evaluator.evaluate(proposal, metrics)
         assert result.approved is True
-        assert result.score > 0.70
+        # Con WR 30% e Impacto 0.85, más multiplicador x1.10, el score debe ser alto
+        assert result.score > 0.80
     
-    def test_reasoning_contains_key_metrics(self, setup):
-        """Verifica que el razonamiento incluye los scores."""
+    def test_crisis_multiplier_critical(self, setup):
+        """Verifica el efecto del multiplicador de crisis (x1.25)."""
+        sentinel, evaluator = setup
+        
+        proposal = ChangeProposal(
+            proposal_id="TEST-CRIT",
+            title="Urgente",
+            target_component="Risk",
+            impact_justification="Crisis",
+            estimated_difficulty="Media",
+            diff_content="diff",
+            test_plan="pytest",
+            metrics={},
+            priority="critical",
+            estimated_complexity="moderate"
+        )
+        
+        metrics = {"win_rate": 0.30, "current_drawdown": 0.20}
+        result = evaluator.evaluate(proposal, metrics)
+        
+        assert "Multiplicador Crisis: x1.25" in result.reasoning
+        assert result.score >= 0.70 # Debería ser aprobado por el multiplicador
+    
+    def test_reasoning_contains_hito3_info(self, setup):
+        """Verifica que el razonamiento incluye información del Hito 3."""
         sentinel, evaluator = setup
         
         proposal = ChangeProposal(
@@ -61,13 +82,11 @@ class TestChangeEvaluator:
             diff_content="diff",
             test_plan="pytest",
             metrics={},
-            priority="medium",
+            priority="normal",
             estimated_complexity="simple"
         )
         
-        result = evaluator.evaluate(proposal)
-        # Verificar palabras clave en español como están en change_evaluator.py
-        assert "Impacto" in result.reasoning
-        assert "Dificultad" in result.reasoning
-        assert "Riesgo" in result.reasoning
-        assert "Complejidad" in result.reasoning
+        result = evaluator.evaluate(proposal, {"win_rate": 0.5})
+        assert "Evaluación Hito 3" in result.reasoning
+        assert "Impacto (35%)" in result.reasoning
+        assert "Multiplicador Crisis" in result.reasoning

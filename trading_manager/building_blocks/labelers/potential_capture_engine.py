@@ -108,7 +108,3 @@ def get_atr_labels(
         labels.append(label)
 
     return pd.Series(labels, index=t_events)
-    atr_period: int = 10,
-    atr_period: int = 10,
-    atr_period: int = 10,
-    sl_factor: float = 0.8,

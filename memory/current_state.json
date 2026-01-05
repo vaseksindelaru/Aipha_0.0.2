@@ -12,10 +12,15 @@
     "debug_mode": true
   },
   "trading_metrics": {
-    "win_rate": 0.3,
+    "win_rate": 0.5612244897959183,
     "total_trades": 100,
     "current_drawdown": 0.2,
-    "status": "ACTIVE"
+    "status": "ACTIVE",
+    "win_rate_metadata": {
+      "tp_factor": 1.0,
+      "sl_factor": 2.0,
+      "signals": 294
+    }
   },
   "market_context": {
     "regime": "UNKNOWN",
@@ -31,5 +36,17 @@
   "proposal_history": {
     "last_type": "tighten",
     "cycles_since_last": 0
+  },
+  "last_applied_proposal_id": "PROP_MANUAL_D52EAF53",
+  "baseline_state": {
+    "win_rate": 0.1863354037267081,
+    "total_trades": 100,
+    "current_drawdown": 0.2,
+    "status": "ACTIVE",
+    "win_rate_metadata": {
+      "tp_factor": 1.0,
+      "sl_factor": 2.0,
+      "signals": 161
+    }
   }
 }

@@ -785,7 +785,9 @@ def proposal():
 @click.option("--parameter", required=True, help="Parámetro específico a cambiar (ej: confidence_threshold)")
 @click.option("--new-value", required=True, help="Nuevo valor del parámetro")
 @click.option("--reason", required=True, help="Razón para el cambio (ej: mejorar win rate)")
-def proposal_create(component, parameter, new_value, reason):
+@click.option("--priority", default="high", type=click.Choice(['low', 'medium', 'high', 'critical']), help="Nivel de prioridad")
+@click.option("--tags", default="", help="Etiquetas separadas por coma (ej: risk,urgent)")
+def proposal_create(component, parameter, new_value, reason, priority, tags):
     """Crear una propuesta manual de cambio.
     
     Ejemplo:
@@ -796,6 +798,15 @@ def proposal_create(component, parameter, new_value, reason):
         # Generar ID único
         proposal_id = f"PROP_MANUAL_{uuid.uuid4().hex[:8].upper()}"
         
+        # Obtener métricas actuales para el "Veredicto del Mercado" (Hito 5)
+        sentinel = get_sentinel()
+        current_metrics = sentinel.query_memory("trading_metrics") or {}
+        baseline_metrics = {
+            "win_rate": current_metrics.get("win_rate", 0.0),
+            "drawdown": current_metrics.get("current_drawdown", 0.0),
+            "total_trades": current_metrics.get("total_trades", 0)
+        }
+        
         # Crear propuesta
         proposal_data = {
             "proposal_id": proposal_id,
@@ -804,10 +815,13 @@ def proposal_create(component, parameter, new_value, reason):
             "parameter": parameter,
             "new_value": new_value,
             "reason": reason,
+            "priority": priority,
+            "tags": [t.strip() for t in tags.split(",") if t.strip()],
             "status": "PENDING_EVALUATION",
             "created_by": "CLI",
             "evaluation_score": None,
             "applied": False,
+            "baseline_metrics": baseline_metrics  # Guardar estado inicial
         }
         
         # Guardar en memory/proposals.jsonl
@@ -1165,6 +1179,10 @@ def proposal_apply(proposal_id):
             with open(proposals_file, "w") as f:
                 for prop in proposals:
                     f.write(json.dumps(prop) + "\n")
+            
+            # Registrar como última propuesta aplicada para el Orquestador (Hito 5)
+            sentinel.add_memory("last_applied_proposal_id", proposal_id)
+            
         except Exception as e:
             click.secho(f"  ⚠️  Error al actualizar registro: {e}", fg='yellow')
         

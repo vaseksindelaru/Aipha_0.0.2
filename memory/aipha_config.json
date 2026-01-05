@@ -1,15 +1,16 @@
 {
   "Trading": {
     "atr_period": 14,
-    "tp_factor": 1.5,
-    "sl_factor": 1.0,
-    "time_limit": 24,
-    "volume_percentile_threshold": 90,
-    "body_percentile_threshold": 25,
-    "reversal_mode": true
+    "tp_factor": 1.0,
+    "sl_factor": 2.0,
+    "time_limit": 48,
+    "volume_percentile_threshold": 95,
+    "body_percentile_threshold": 15,
+    "ema_period": 200,
+    "reversal_mode": false
   },
   "Oracle": {
-    "confidence_threshold": 0.7,
+    "confidence_threshold": 0.85,
     "n_estimators": 100,
     "model_path": "oracle/models/oracle_reversal_v1.joblib"
   },
@@ -17,9 +18,6 @@
     "adaptive_sensitivity": 0.1
   },
   "Orchestrator": {
-    "confidence_threshold": 0.75
-  },
-  "orchestrator": {
-    "confidence_threshold": "0.65"
+    "confidence_threshold": 0.85
   }
 }

@@ -13,10 +13,12 @@ import threading
 import asyncio
 import time
 import logging
+import json
 from contextlib import contextmanager
 from enum import Enum
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +67,7 @@ class CentralOrchestratorHardened:
             logger.warning("⚠️ OracleManagerWithHealthCheck no encontrado, usando Mock")
             self.oracle_manager = MagicMock() if 'MagicMock' in globals() else type('Mock', (), {'health_check': lambda: True})()
         
-        self.memory_manager = ContextSentinel()
+        self.memory_manager = ContextSentinel(storage_root=Path("memory"))
         self.execution_queue = ExecutionQueue(max_workers=1)
         
         # Registrar signal handlers
@@ -304,6 +306,21 @@ class CentralOrchestratorHardened:
         
         with self.safe_cycle_context(cycle_type):
             try:
+                # FASE 0: El Veredicto del Mercado (Hito 5)
+                # Verificar impacto de la última propuesta aplicada antes de seguir
+                last_applied = self.memory_manager.query_memory("last_applied_proposal_id")
+                if last_applied:
+                    logger.info(f"⚖️ FASE 0: Verificando impacto de {last_applied}...")
+                    verdict = self._verify_proposal_impact(last_applied)
+                    
+                    if verdict.get("verdict") == "SUCCESS":
+                        logger.info(f"✨ Veredicto POSITIVO. Aplicando 'Permanent Fix' (actualizando baseline).")
+                        # Mecanismo de "Permanent Fix": Actualizar el estado base del sistema
+                        current_metrics = await self._collect_metrics()
+                        self.memory_manager.add_memory("baseline_state", current_metrics)
+                    else:
+                        logger.warning(f"⚠️ Veredicto NEGATIVO o NEUTRAL. Manteniendo vigilancia.")
+
                 # FASE 1: Recolectar métricas
                 if self._check_interrupt():
                     logger.info("  Interrupción en Fase 1")
@@ -371,10 +388,66 @@ class CentralOrchestratorHardened:
     # ... métodos auxiliares ...
     async def _collect_metrics(self):
         """Recolectar métricas del sistema"""
-        # Implementación
-        pass
+        return self.memory_manager.query_memory("trading_metrics") or {}
     
+    def _verify_proposal_impact(self, proposal_id: str) -> Dict[str, Any]:
+        """
+        Hito 5: El Veredicto del Mercado.
+        Compara métricas antes y después de aplicar una propuesta.
+        """
+        # 1. Obtener la propuesta con sus métricas base
+        proposal_data = None
+        proposals_file = Path("memory/proposals.jsonl")
+        if proposals_file.exists():
+            with open(proposals_file, "r") as f:
+                for line in f:
+                    if line.strip():
+                        data = json.loads(line)
+                        if data.get("proposal_id") == proposal_id:
+                            proposal_data = data
+                            break
+        
+        if not proposal_data or not proposal_data.get("baseline_metrics"):
+            logger.warning(f"No hay datos de línea base para la propuesta {proposal_id}")
+            return {"success": False, "reason": "no_baseline"}
+        
+        # 2. Obtener métricas actuales (Veredicto)
+        current_metrics = self.memory_manager.query_memory("trading_metrics") or {}
+        baseline = proposal_data["baseline_metrics"]
+        
+        wr_before = baseline.get("win_rate", 0.0)
+        wr_after = current_metrics.get("win_rate", 0.0)
+        dd_before = baseline.get("drawdown", 0.0)
+        dd_after = current_metrics.get("current_drawdown", 0.0)
+        
+        # 3. Calcular Deltas
+        wr_delta = wr_after - wr_before
+        dd_delta = dd_after - dd_before
+        
+        # 4. Determinar Éxito (Veredicto)
+        # Se considera éxito si el Win Rate subió o el Drawdown bajó
+        is_success = wr_delta > 0 or dd_delta < 0
+        
+        result = {
+            "proposal_id": proposal_id,
+            "verdict": "SUCCESS" if is_success else "FAILURE",
+            "wr_delta": wr_delta,
+            "dd_delta": dd_delta,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # 5. Registrar Evento Final
+        self.memory_manager.add_action(
+            agent="MarketVerdict",
+            action_type="VERDICT_RECORDED",
+            proposal_id=proposal_id,
+            details=result
+        )
+        
+        logger.info(f"⚖️ Veredicto del Mercado para {proposal_id}: {result['verdict']} (WR Delta: {wr_delta:+.2f})")
+        
+        return result
+
     def _generate_proposals(self, metrics, cycle_type):
         """Generar propuestas basadas en métricas"""
-        # Implementación
-        pass
+        return []
