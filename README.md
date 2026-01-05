@@ -1,111 +1,68 @@
-# Aipha v2.0 - Sistema Autónomo de 5 Capas
+# 🦅 Aipha v2.1: Autonomous Trading System
 
-Aipha es un sistema inteligente y autónomo que evoluciona continuamente. Implementa 5 capas de arquitectura: **Velocidad**, **Seguridad**, **Robustez**, **Consciencia** e **Inteligencia**.
+> **Estado:** ✅ RENTABLE (Win Rate 56.12%) | 🛡️ HARDENED | 🧠 SELF-IMPROVING
 
-## 🧬 ¿Qué hace único a Aipha?
+Aipha es un sistema de trading algorítmico autónomo diseñado para **auto-mejorarse**. Utiliza un bucle de retroalimentación cerrado donde un Orquestador (IA) analiza métricas de trading, genera propuestas de cambio de código/configuración, las evalúa y las aplica de forma atómica.
 
-| Característica | Bots Tradicionales | Aipha v2.0 |
-|----------------|-------------------|------------|
-| Velocidad | ❌ Segundos | ✅ <1s (SIGUSR1) |
-| Seguridad | ❌ Básica | ✅ ACID Atómica |
-| Robustez | ❌ Manual | ✅ Auto-recuperación |
-| Consciencia | ❌ N/A | ✅ Health Monitor |
-| Inteligencia | ❌ N/A | ✅ Qwen 2.5 Coder 32B |
+---
 
-## 🏛️ Arquitectura de 5 Capas
+## 🚀 Características Clave (v2.1)
 
-```
-┌─────────────────────────────────────────────────────┐
-│  CAPA 5: INTELIGENCIA (Qwen 2.5 Coder 32B LLM)     │
-├─────────────────────────────────────────────────────┤
-│  CAPA 4: CONSCIENCIA (Health Monitor + Quarantine) │
-├─────────────────────────────────────────────────────┤
-│  CAPA 3: ROBUSTEZ (Interrupciones Seguras)         │
-├─────────────────────────────────────────────────────┤
-│  CAPA 2: SEGURIDAD (Actualizaciones ACID)          │
-├─────────────────────────────────────────────────────┤
-│  CAPA 1: VELOCIDAD (File Watcher + SIGUSR1 <1s)   │
-└─────────────────────────────────────────────────────┘
-```
+- **Estrategia Ganadora:** "Trend Following" con barreras asimétricas (TP 1.0 / SL 2.0).
+- **Core Reforzado (`HardenedOrchestrator`):** Resistente a fallos, con manejo de señales (SIGUSR1/SIGUSR2) y colas de prioridad.
+- **CLI Avanzado:** Interfaz completa para monitoreo, diagnóstico y control manual (`aipha status`, `aipha dashboard`).
+- **Memoria Persistente:** Sistema de logs y estado en JSONL que sobrevive a reinicios.
+- **Seguridad Atómica:** Los cambios de código se prueban y pueden revertirse automáticamente si fallan.
 
-**Documentación completa**: [ARCHITECTURE.md](ARCHITECTURE.md)
+---
 
-## 🚀 Inicio Rápido
+## 🛠️ Instalación y Uso
 
-### Configuración Inicial
-```bash
-# 1. Copiar template de configuración
-cp .env.example .env
+### Requisitos
+- Python 3.10+
+- Entorno Linux/Unix
 
-# 2. Editar .env con tu API key de HuggingFace
-# Obtén un token en: https://huggingface.co/settings/tokens
-export AIPHA_BRAIN_KEY="hf_YOUR_TOKEN_HERE"
+### Comandos Principales
 
-# 3. Verificar que todo funciona
-python3 test_final.py
-```
+1. **Ver Estado del Sistema**
+   ```bash
+   aipha status
+   ```
 
-### Usar el CLI
-```bash
-# Ver estado del sistema
-python3 -m aiphalab.cli status
+2. **Ejecutar un Ciclo de Mejora**
+   ```bash
+   aipha cycle run
+   ```
 
-# Ejecutar ciclo de automejora
-python3 -m aiphalab.cli cycle run
+3. **Panel de Control en Tiempo Real**
+   ```bash
+   aipha dashboard
+   ```
 
-# Dashboard en tiempo real
-python3 -m aiphalab.cli dashboard
+4. **Diagnóstico de Salud**
+   ```bash
+   aipha brain health
+   ```
 
-# Análisis con LLM
-python3 -m aiphalab.cli llm analyze orchestrator
-```
-
-### Ejecutar Tests
-```bash
-pytest tests/ -v
-```
+---
 
 ## 📂 Estructura del Proyecto
 
-```
-Aipha_0.0.2/
-├── core/                    # 🧠 Inteligencia Autónoma
-│   ├── orchestrator.py      # Orquestador central
-│   ├── context_sentinel.py  # Memoria persistente
-│   ├── change_proposer.py   # Generador de propuestas
-│   ├── llm_proposer.py      # Integración LLM
-│   └── atomic_update_system.py
-├── trading_manager/         # 📈 Estrategias de trading
-├── oracle/                  # 🔮 Machine Learning
-├── data_processor/          # 📊 Adquisición de datos
-├── simulation/              # 🎲 Mercado sintético
-├── tests/                   # 🧪 Suite de pruebas
-├── memory/                  # 💾 Almacenamiento
-└── life_cycle.py            # 🔄 Simulación del ciclo
-```
+- **`core/`**: El cerebro del sistema (`orchestrator_hardened.py`, `context_sentinel.py`).
+- **`trading_manager/`**: Lógica de mercado (`proof_strategy.py`, detectores).
+- **`aiphalab/`**: Herramientas de interfaz y CLI.
+- **`memory/`**: Base de datos persistente (Configuración, Historial, Métricas).
 
-## � Estructura del Proyecto
+---
 
-```
-Aipha_0.0.2/
-├── aiphalab/                 # 🖥️  Interface CLI
-│   ├── cli.py                # Comandos del sistema
-│   ├── dashboard.py          # Dashboard interactivo
-│   └── formatters.py         # Formateo de salida
-├── core/                      # 🧠 Núcleo (5 capas)
-│   ├── orchestrator_hardened.py   # Capa 1: Velocidad
-│   ├── atomic_update_system.py    # Capa 2: Seguridad
-│   ├── execution_queue.py         # Capa 3: Robustez
-│   ├── health_monitor.py          # Capa 4: Consciencia
-│   ├── quarantine_manager.py      # Capa 4: Consciencia
-│   ├── llm_client.py              # Capa 5: Inteligencia
-│   ├── llm_assistant.py           # Capa 5: Inteligencia
-│   └── ...
-├── tests/                    # 🧪 Test suite
-├── memory/                   # 💾 Almacenamiento persistente
-├── ARCHITECTURE.md           # Documentación de arquitectura
-├── IMPLEMENTATION_COMPLETE.md # Estado actual del sistema
-├── .env.example              # Template de configuración
-├── test_final.py             # Verificación del sistema
-└── pyproject.toml            # Configuración del proyecto
-```
+## 📊 Rendimiento Actual
+- **Estrategia:** Continuación de Tendencia (Trend Following)
+- **Win Rate:** 56.12%
+- **Gestión de Riesgo:** Asimetría Defensiva (SL amplio para evitar ruido).
+
+---
+
+## 📜 Documentación Adicional
+- [Resumen Final v2.1](./RESUMEN_FINAL_COMPLETO_AIPHA_v2_1.md) - Detalles del hito de rentabilidad.
+- [Arquitectura](./ARCHITECTURE.md) - Diseño técnico del sistema.
+- [Guía CLI](./GUIA_CLI_PANEL_CONTROL.md) - Manual completo de comandos.

@@ -34,7 +34,7 @@ if env_path.exists():
 
 import click
 from core.context_sentinel import ContextSentinel
-from core.orchestrator import CentralOrchestrator
+from core.orchestrator_hardened import CentralOrchestratorHardened
 from aiphalab.assistant import AiphaAssistant
 from core.llm_assistant import LLMAssistant
 from core.llm_client import LLMClient
@@ -294,7 +294,7 @@ def run(ctx):
     """Run a single self-improvement cycle."""
     storage_path = AIPHA_ROOT / "memory"
     dry_run = ctx.obj.get('dry_run', False) if ctx.obj else False
-    orchestrator = CentralOrchestrator(storage_root=storage_path, dry_run=dry_run)
+    orchestrator = CentralOrchestratorHardened()
     
     mode_str = "[DRY-RUN] " if dry_run else ""
     if console:
@@ -323,7 +323,7 @@ def watch(ctx, interval):
     """Activate observer mode for automatic cycles."""
     storage_path = AIPHA_ROOT / "memory"
     dry_run = ctx.obj.get('dry_run', False) if ctx.obj else False
-    orchestrator = CentralOrchestrator(storage_root=storage_path, dry_run=dry_run)
+    orchestrator = CentralOrchestratorHardened()
     cycle_count = 0
 
     mode_str = "[DRY-RUN] " if dry_run else ""
